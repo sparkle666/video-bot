@@ -4,63 +4,81 @@ import logging
 from dotenv import load_dotenv
 from dotenv import dotenv_values
 import openai 
+from PIL import ImageOps, Image
+import requests_cache
 
 
 config = dotenv_values(".env")
 openai_org = config["OPENAI_ORG"]
 openai_key = config["OPENAI"]
 
-# Todo: convert speech audio to srt subtitles, overlay video on top, write main function that connects all.
+# creating a db to store each requested api requests
+session = requests_cache.CachedSession("api_callsDB")
+  
 
-audio_file = open("audio.mp3", "rb")
-transcript = openai.Audio.transcribe("whisper-1", audio_file)
+# Todo: get audio time in seconds for calcukating how many overlay to use, scrap pictures from google edit with pillow make it square, overlay video on top, write main function that connects all.
 
 ffmpeg_overlay = """
 ffmpeg -i background.mp4 -i overlay.mp4 -filter_complex \
 "[0:v][1:v]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2:enable='between(t,0,overlay_duration)'" \
 -c:a copy output.mp4
 """
+dura = "ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 input.mp4"
+
 voices = {'Rachel': '21m00Tcm4TlvDq8ikWAM', 'Domi': 'AZnzlk1XvdvUeBnXmlld', 'Bella': 'EXAVITQu4vr4xnSDxMaL', 'Antoni': 'ErXwobaYiN019PkySvjV', 'Elli': 'MF3mGyEYCl7XYWbV9V6O', 'Josh': 'TxGEqnHWrfWFTfGW9XjX', 'Arnold': 'VR6AewLTigWG4xSOukaG', 'Adam': 'pNInz6obpgDQGcFmaJgB', 'Sam': 'yoZ06aMxZJJ28mfd3POQ'}
 
+def add_border_to_image(image, new_filename, borderwidth =  40, color= "white"):
+  """ Adds a border of x length to an image """
+  try:
+      ImageOps.expand(Image.open(f'{image}'),border=borderwidth,fill=f'{color}').save(f'{new_filename}')
+      return new_filename
+  except Exception as e:
+      logging.exception("Error adding border...", e)
 
+#add_border_to_image("zoomtest.jpg", new_filename = "anotherkoko.jpg")
+  
 def api_call_hook(endpoint, method, payload = None, headers = None):
   """ 
   makes a API calls 
   """
-  req = None
   
   if method.lower() == "get":
-    req = requests.get(endpoint, headers = headers)
+    req = session.get(endpoint, headers = headers)
     if req.status_code == 200:
       print(req.content)
       return req.content
   elif method.lower() == "post":
-    req = requests.post(endpoint, json = payload, headers = headers)
+    req = session.post(endpoint, json = payload, headers = headers)
     if req.status_code == 200 or req.status_code == 201:
       print(req.content, req.reason)
       return req.content
   else:
     return "Request method out of scope..."
-  
+
 def convert_audio_to_srt(audio, subtitle_name):
   """ Gets audio, sends to open ai whisper to make translate to srt
   """
   openai.api_key = openai_key
   openai.organization = openai_org
+  audio_ = None 
+  
+  if os.path.exists(f"{audio}.mp3"):
+    audio_ = open(f"{audio}.mp3", "rb")
+    print("Opened audio file.")
+  else:
+    raise FileNotFoundError 
+    
   try:
-    print("Converting audio to subtitle")
-      sub = openai.Audio.transcribe("whisper-1", audio, response_format="srt")
-      print("Writinf file.")
+      print("Converting audio to subtitle")
+      sub = openai.Audio.transcribe("whisper-1", audio_, response_format="srt")
+      print("Writing file.")
       f = open(f"{subtitle_name}.srt","w+")
       f.write(sub)
       f.close()
       return f"{subtitle_name}.srt"
   except Exception as e:
       logging.exception("Error creating file...")
-      return False
   
-
-convert_audio_to_srt()
   
 def add_zoom_effect(picture, time = 10):
   """ Adds a zoom effect to video """
