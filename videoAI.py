@@ -3,18 +3,18 @@ import requests
 import logging
 from dotenv import load_dotenv
 from dotenv import dotenv_values
+import openai 
+
 
 config = dotenv_values(".env")
+openai_org = config["OPENAI_ORG"]
+openai_key = config["OPENAI"]
 
-print(config["OPENAI"])
+# Todo: convert speech audio to srt subtitles, overlay video on top, write main function that connects all.
 
-# Todo: convert speech audio to srt subtitles,  write main function that connects all.
+audio_file = open("audio.mp3", "rb")
+transcript = openai.Audio.transcribe("whisper-1", audio_file)
 
-
-blur = """
-ffmpeg -loop 1 -i photo.jpg -y -filter_complex "[0]scale=1200:-2,setsar=1:1[out];[out]crop=1200:670[out];[out]scale=8000:-1,zoompan=z='zoom+0.001':x=iw/2-(iw/zoom/2):y=ih/2-(ih/zoom/2):d=250:s=1200x670:fps=25[out]" -acodec aac -vcodec libx264 -map "[out]" -map 0:a? -pix_fmt yuv420p -r 25 -t 10 video.mp4
-"""
-ffmpeg_command = "ffmpeg -i input.mp4 -vf 'boxblur=5:1' output.mp4"
 ffmpeg_overlay = """
 ffmpeg -i background.mp4 -i overlay.mp4 -filter_complex \
 "[0:v][1:v]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2:enable='between(t,0,overlay_duration)'" \
@@ -22,8 +22,6 @@ ffmpeg -i background.mp4 -i overlay.mp4 -filter_complex \
 """
 voices = {'Rachel': '21m00Tcm4TlvDq8ikWAM', 'Domi': 'AZnzlk1XvdvUeBnXmlld', 'Bella': 'EXAVITQu4vr4xnSDxMaL', 'Antoni': 'ErXwobaYiN019PkySvjV', 'Elli': 'MF3mGyEYCl7XYWbV9V6O', 'Josh': 'TxGEqnHWrfWFTfGW9XjX', 'Arnold': 'VR6AewLTigWG4xSOukaG', 'Adam': 'pNInz6obpgDQGcFmaJgB', 'Sam': 'yoZ06aMxZJJ28mfd3POQ'}
 
-
-jpg = "ffmpeg -i input.mp4 -vf 'select=eq(n\,0)' -vframes 1 output.jpg"
 
 def api_call_hook(endpoint, method, payload = None, headers = None):
   """ 
@@ -44,10 +42,25 @@ def api_call_hook(endpoint, method, payload = None, headers = None):
   else:
     return "Request method out of scope..."
   
-def convert_audio_to_srt(audio):
+def convert_audio_to_srt(audio, subtitle_name):
   """ Gets audio, sends to open ai whisper to make translate to srt
   """
-  pass
+  openai.api_key = openai_key
+  openai.organization = openai_org
+  try:
+    print("Converting audio to subtitle")
+      sub = openai.Audio.transcribe("whisper-1", audio, response_format="srt")
+      print("Writinf file.")
+      f = open(f"{subtitle_name}.srt","w+")
+      f.write(sub)
+      f.close()
+      return f"{subtitle_name}.srt"
+  except Exception as e:
+      logging.exception("Error creating file...")
+      return False
+  
+
+convert_audio_to_srt()
   
 def add_zoom_effect(picture, time = 10):
   """ Adds a zoom effect to video """
