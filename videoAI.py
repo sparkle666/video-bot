@@ -26,8 +26,24 @@ voices = {'Rachel': '21m00Tcm4TlvDq8ikWAM', 'Domi': 'AZnzlk1XvdvUeBnXmlld', 'Bel
 
 def main():
   """ Main program to execute rest of the script """
-  pass
+  audio_voiceover = generate_audio()
+  script = load_script()
 
+def load_script() -> str:
+  """ Loads a script from a text file called script.txt"""
+  
+  script = ""
+  if os.path.exists("scripts") == False:
+    return "Please create a script.txt filw and add your script to it..."
+  try:
+      with open("script.txt", "r") as f:
+        script = f.read()
+        script.replace("\n", " ")
+        return script
+  except Exception as e:
+      logging.exception("Error loading script.txt", e)
+      
+  
 def crop_(image, bounds: tuple, cropped_filename: str, isVideo = False, width = 0, height = 0, x = 0, y = 0) -> bool:
   """ crops a picture on specified bounding box """
   
@@ -73,17 +89,17 @@ def get_video_data(video) -> dict:
 
 #get_video_data("newkoko.jpg")
   
-def overlay_video_in_center(foreground_video, background_video, duration, overlay_name ):
+def overlay_video_in_center(background_video, foreground_video, duration, overlay_name ):
   """ Adds a video or image in the center of another video
   """
-  ffmpeg_overlay = f'ffmpeg -i {foreground_video} -i {background_video} -filter_complex "[0:v][1:v]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2:enable=\'between(t,0,{duration})\'" -c:a copy {overlay_name}'
+  ffmpeg_overlay = f'ffmpeg -i {background_video} -i {foreground_video} -filter_complex "[0:v][1:v]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2:enable=\'between(t,0,{duration})\'" -c:a copy {overlay_name}'
   try:
       os.system(ffmpeg_overlay)
       return True
   except Exception as e:
     print("Error overlaying video...", e)
 
-overlay_video_in_center("kokovideo.mp4", "saitama0.mp4", 5, "newvideo3.mp4")
+#overlay_video_in_center("kokovideo.mp4", "saitama1.mp4", 5, "newvideo4.mp4")
 
 def add_border_to_image(image, new_filename, borderwidth =  40, color= "white"):
   """ Adds a border of x length to an image """
@@ -160,7 +176,7 @@ def download_character_videos(anime_char, api_key, ckey, lmt=2):
     urls = []
     try:
         print("inside try")
-        req = requests.get(
+        req = session.get(
             "https://tenor.googleapis.com/v2/search?q=%s&key=%s&client_key=%s&limit=%s" % (anime_char, api_key, ckey, lmt))
         print(req.status_code)
         if req.status_code == 200:
@@ -199,7 +215,7 @@ def generate_audio(text):
   print(text)
   try:
       print("inside try block")
-      req = requests.post(f"{api_endpoint}/v1/text-to-speech/{voices['Antoni']}/stream", headers = headers, json = payload)
+      req = session.post(f"{api_endpoint}/v1/text-to-speech/{voices['Antoni']}/stream", headers = headers, json = payload)
       print("making requests")
       if req.status_code == 200:
         print("Saving audio file")
