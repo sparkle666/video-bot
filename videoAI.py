@@ -6,6 +6,7 @@ from dotenv import dotenv_values
 import openai 
 from PIL import ImageOps, Image
 import requests_cache
+import subprocess
 
 
 config = dotenv_values(".env")
@@ -16,16 +17,66 @@ openai_key = config["OPENAI"]
 session = requests_cache.CachedSession("api_callsDB")
   
 
-# Todo: get audio time in seconds for calcukating how many overlay to use, scrap pictures from google edit with pillow make it square, overlay video on top, write main function that connects all.
+# Todo: overlay video on top, write main function that connects all.
 
 ffmpeg_overlay = """
 ffmpeg -i background.mp4 -i overlay.mp4 -filter_complex \
 "[0:v][1:v]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2:enable='between(t,0,overlay_duration)'" \
 -c:a copy output.mp4
 """
-dura = "ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 input.mp4"
 
 voices = {'Rachel': '21m00Tcm4TlvDq8ikWAM', 'Domi': 'AZnzlk1XvdvUeBnXmlld', 'Bella': 'EXAVITQu4vr4xnSDxMaL', 'Antoni': 'ErXwobaYiN019PkySvjV', 'Elli': 'MF3mGyEYCl7XYWbV9V6O', 'Josh': 'TxGEqnHWrfWFTfGW9XjX', 'Arnold': 'VR6AewLTigWG4xSOukaG', 'Adam': 'pNInz6obpgDQGcFmaJgB', 'Sam': 'yoZ06aMxZJJ28mfd3POQ'}
+
+def crop_picture(image, bounds: tuple, cropped_filename: str) -> str:
+  """ crops a picture on specified bounding box """
+  try:
+       # Open the input image
+      input_image = Image.open(image)
+    # Crop the image
+      cropped_image = ImageOps.crop(input_image, bounds)
+      # Save the cropped image
+      cropped_image.save(f"{cropped_filename}.jpg")
+      print("Cropped successfully...")
+      return True
+  except Exception as e:
+      print("Error cropping picture", e)
+
+
+
+def get_video_data(video) -> dict:
+  """ Returns the video duration of a video in seconds
+  """
+  
+  cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", f"{video}"]
+# Run the ffprobe command using subprocess
+  try:
+      duration = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
+      dimensions_cmd = ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0:s=x", f"{video}"]
+      dimensions_output = subprocess.check_output(dimensions_cmd).decode("utf-8").strip().split("x")
+      width = int(dimensions_output[0])
+      height = int(dimensions_output[1])
+      
+      print(width, height, duration)
+      return {"duration": float(duration), "dimension" : [width, height]}
+      
+  except subprocess.CalledProcessError as e:
+      print("Error:", e.output)
+
+#get_video_data("newkoko.jpg")
+  
+def overlay_video_in_center(background_video,  foreground_video, duration, overlay_name ):
+  """ Adds a video or image in the center of another video
+  """
+  ffmpeg_overlay = f'ffmpeg -i {foreground_video} -i {background_video} -filter_complex "[0:v][1:v]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2:enable=\'between(t,0,{duration})\'" -c:a copy {overlay_name}.mp4'
+  try:
+      os.system(ffmpeg_overlay)
+      return True
+  except Exception as e:
+    print("Error overlaying video...", e)
+  
+
+#overlay_video_in_center("kokovideo.mp4", "anotherkoko.jpg", 3, "overlayedkoko")
+
 
 def add_border_to_image(image, new_filename, borderwidth =  40, color= "white"):
   """ Adds a border of x length to an image """
