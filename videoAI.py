@@ -1,5 +1,6 @@
 import os
 import requests
+import math
 import logging
 from dotenv import load_dotenv
 from dotenv import dotenv_values
@@ -9,7 +10,7 @@ import requests_cache
 import subprocess
 from google_images_search import GoogleImagesSearch
 from constants import voices
-from helpers import resize_, get_video_data, duplicate_file
+from helpers import resize_, get_video_data, duplicate_file, add_video_to_file, concat_videos_from_file
 
 config = dotenv_values(".env")
 openai_org = config["OPENAI_ORG"]
@@ -33,6 +34,10 @@ def main():
     
     script = load_script()
     title = ""
+    video_filename = "clip2.txt"
+    final_bg_video = ""
+    
+    
     if script:
         temp_title = script.get("title").split()
         title = temp_title[0]
@@ -40,20 +45,33 @@ def main():
             title = temp_title[0] + "_" + temp_title[1]
         keywords = script.get("keywords")
         script_content = script.get("content")
-        #audio_voiceover = generate_audio(script_content, title)
+        audio_voiceover = generate_audio(script_content, title)
         
         #audio_subtitle = convert_audio_to_srt("One.mp3")
         audio_duration = get_video_data("One.mp3", isVideo=False)
         #print(audio_duration.get("duration"))
-        keyword_urls = download_character_videos(keywords[0], 2)
+        keyword_urls = get_tenor_video_urls(keywords[0], 2)
         downloaded_videos = download_video_from_url(keywords[0], keyword_urls)
+        # Re encode all dowbloaded vidoes to H264
         print(keywords[0], downloaded_videos)
         # Get one frame from a video to use as background blur
         first_video = downloaded_videos.get("videos")[0]
         picture = generate_pic_from_video(first_video)
+        # Get number of vidoeos to use as background
         if audio_duration > 10:
-        	# Get one 
-        	zoomed_video = add_zoom_effect(picture, audio_duration)
+        		# get number of videos to duplicate, used to save time.
+        		num_videos = math.ceil(audio_duration/10)
+        		zoomed_video = add_zoom_effect(picture, audio_duration)
+        		duplicated_videos = duplicate_file(zoomed_video, num_videos)
+        		if duplicated_videos.get("status"):
+        			clip_txt_file = add_video_to_file(duplicated_videos.get("duplicated_files"), video_filename)
+        			final_bg_video = concat_videos_from_file(clip_txt_file)
+        			full_video_with_audio = add_audio_to_video(final_bg_video, audio_voiceover, trim = True)
+        			
+        			
+        else:
+        		
+        	
         
         
 
@@ -192,7 +210,7 @@ def generate_pic_from_video(video: str) -> str:
   
 #generate_pic_from_video("zoomtest")
 
-def download_character_videos(anime_char, lmt=2):
+def get_tenor_video_urls(anime_char, lmt=2):
     """ Downloads character in list from tenor"""
     urls = []
     try:
@@ -220,11 +238,10 @@ def download_video_from_url(char_name, url_list):
   for url in url_list:
     os.system(f"ffmpeg -i {url} {char_name}{url_list.index(url)}.mp4")
     vid.append(f"{char_name}{url_list.index(url)}.mp4")
-    print(vid)
   return {"status": True, "videos": vid}
 
 def add_video_blur(video, blur_strength = 6):
-  os.system(f"ffmpeg -i {video}.mp4 -vf 'boxblur={blur_strength}:1' output.mp4")
+  os.system(f"ffmpeg -i {video} -vf 'boxblur={blur_strength}:1' {video.split('.')[0]}_blurred.mp4")
   return True
   
 def generate_audio(text, filename):
@@ -251,11 +268,12 @@ def generate_audio(text, filename):
 def add_audio_to_video(video, audio, trim = False):
   """ Add audio to video and trim the video to length of audio
   """
-  if os.path.exists(f"{video}.mp4") and os.path.exists(f"{audio}.mp3"):
+  if os.path.exists(f"{video}") and os.path.exists(f"{audio}"):
     if trim:
-      os.system(f"ffmpeg -i {video}.mp4 -i {audio}.mp3 -c:v copy -c:a aac -shortest {video}withaudio.mp4")
+      os.system(f"ffmpeg -i {video} -i {audio} -c:v copy -c:a aac -shortest {video}withaudio.mp4")
+      return f"{video}withaudio.mp4"
     else:
-      os.system(f"ffmpeg -i {video}.mp4 -i {audio}.mp3 -c:v copy -c:a aac {video}withaudio.mp4")
+      os.system(f"ffmpeg -i {video} -i {audio} -c:v copy -c:a aac {video}withaudio.mp4")
     return f"{video}withaudio.mp4"
   print("Either audio or video does not exist in current directory...")
 
@@ -277,5 +295,7 @@ def add_subtitle_to_video(video, subtitle) -> str:
 
 #add_zoom_effect("anotherkoko.jpg", 10)
 
-res = duplicate_file("anotherkokoZoomed.mp4", 3)
-print(res.get("duplicated_files"))
+#res = duplicate_file("anotherkokoZoomed.mp4", 3)
+#print(res.get("duplicated_files"))
+
+#add_video_blur("anotherkokoZoomed.mp4")
