@@ -12,20 +12,22 @@ def get_image_data(image) -> tuple:
   except Exception as e:
   		logging.exception("Failed to get size", e)
  
- def encode_to_H264(videos, extension = "mp4", isList = False):
- 	""" Encodes videos to libx264 a fast encoder """
- 	encoded_videos = []
- 	try:
- 			if isList():
- 					for video in videos:
- 						os.system(f"ffmpeg -i {video} -c:v libx264 {video.split(".")[0]}.{extension}")
- 						encoded_videos.append(f"{video.split(".")[0]}.{extension}")
- 					return encoded_videos
- 			else:
- 					os.system(f"ffmpeg -i {videos} -c:v libx264 {videos.split(".")[0]}.{extension}")
- 					return f"{videos.split(".")[0]}.{extension}"
- 	except Exception as e:
- 			logging.exception("Error:: ", e)
+def encode_to_H264(videos, extension="mp4", isList=False):
+    """ Encodes videos to libx264 a fast encoder """
+    encoded_videos = []
+    try:
+        if isList:
+            for video in videos:
+                os.system(f"ffmpeg -i {video} -c:v libx264 {video.split('.')[0]}_encoded.{extension}")
+                encoded_videos.append(f"{video.split('.')[0]}_encoded.{extension}")
+            return encoded_videos
+        else:
+            os.system(f"ffmpeg -i {videos} -c:v libx264 {videos.split('.')[0]}_encoded.{extension}")
+            return f"{videos.split('.')[0]}_encoded.{extension}"
+    except Exception as e:
+        logging.exception("Error: ", e)
+
+#encode_to_H264("imgtestZoomed.mp4")
 
 def get_video_data(video, isVideo=True) -> dict:
     """ Returns the video duration of a video in seconds """
@@ -46,12 +48,13 @@ def get_video_data(video, isVideo=True) -> dict:
 
 
 
-def resize_(image, resized_filename: str, isVideo = False, width = 0, height = 0, x = 0, y = 0) -> bool:
-  """ crops a picture on specified bounding box """
+def resize_(image, resized_filename: str, isVideo = False, width = 0, height = 0):
+  """ resizes a picture or video on specified width and height """
   
   if isVideo:
     try: 
-        os.system(f"ffmpeg -i input.mp4 -filter_complex \"crop={w}:{h}:{x}:{y}\" {resized_filename}.mp4")
+    		# Scale to 80% of 650 used in main background.
+        os.system(f"ffmpeg -i {image} -vf scale=iw*0.8:-1 {resized_filename}")
         return True
     except Exception as e:
         print("Error...", e)
@@ -68,9 +71,14 @@ def resize_(image, resized_filename: str, isVideo = False, width = 0, height = 0
           return True
       except Exception as e:
           print("Error resizing picture", e)
-#resize_()
+
+#resize_("saitama0.mp4", "saitamaSmall.mp4", isVideo = True )
 
 def duplicate_file(filename, amount = 2):
+	""" Make copies of a file """
+	
+	if amount == 1:
+		return {"status": False, "duplicated_files": filename}
 	if os.path.exists(filename):
 		splitted_filename = filename.split(".")[0]
 		extension = filename.split(".")[1] 
@@ -95,7 +103,7 @@ def add_video_to_file(list_of_videos, filename):
 	""" Adds a list of videos to an ffmpeg compatible text file """
 	try:
 			txt_file = open(f"{filename}", "w")
-			for text in len(list_of_videos):
+			for text in list(range(len(list_of_videos))):
 				txt_file.writelines(f"file {text} \n")
 			txt_file.close()
 			return filename
