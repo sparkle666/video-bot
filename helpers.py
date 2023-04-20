@@ -75,7 +75,7 @@ def resize_(image, resized_filename: str, isVideo = False, width = 0, height = 0
 #resize_("saitama0.mp4", "saitamaSmall.mp4", isVideo = True )
 
 def duplicate_file(filename, amount = 2):
-	""" Make copies of a file """
+	""" Make copies of a file. Checks if video is already existing in current directory. If not, create it and append it to a list. if it has, don't create but append it to list and return"""
 	
 	if amount == 1:
 		return {"status": False, "duplicated_files": filename}
@@ -87,23 +87,26 @@ def duplicate_file(filename, amount = 2):
 				original_file = open(filename, "rb")
 				print("____Duplicating Files___")
 				for num in list(range(amount)):
-					duplicate_file = open(f"{splitted_filename}_{num}.{extension}", "wb")
-					duplicate_file.write(original_file.read())
-					duplicate_file.close()
+					if not os.path.exists(f"{splitted_filename}_{num}.{extension}"):
+						duplicate_file = open(f"{splitted_filename}_{num}.{extension}", "wb")
+						duplicate_file.write(original_file.read())
+						duplicate_file.close()
+						original_file.seek(0)
 					cloned_files.append(f"{splitted_filename}_{num}.{extension}")
-					original_file.seek(0)
+					
 				original_file.close()
-				
+				print("___Cloned Files___", cloned_files)
 				return {"status": True, "duplicated_files": cloned_files}
+			
 		except Exception as e:
 				logging.exception("ERROR:", e)
 				
-				
+#duplicate_file("Tatsumaki0Zoomed_blurred.mp4", 6)				
 def add_video_to_file(list_of_videos, filename):
 	""" Adds a list of videos to an ffmpeg compatible text file """
 	try:
 			txt_file = open(f"{filename}", "w")
-			for text in list(range(len(list_of_videos))):
+			for text in list_of_videos:
 				txt_file.writelines(f"file {text} \n")
 			txt_file.close()
 			return filename
@@ -117,7 +120,7 @@ def concat_videos_from_file(filename: str, extension = "mp4"):
 	if not splitted[1] == "txt":
 			return False
 	try:
-			os.system(f"ffmpeg -f concat -safe 0 -i {filename} -c copy {filename}_zipped.{extension}")
-			return f"{splitted[0]}_zipped.{extension}"
+			os.system(f"ffmpeg -f concat -safe 0 -i {filename} -c copy final_zipped.{extension}")
+			return f"final_zipped.{extension}"
 	except Exception as e:
 			logging.extension("Error: ", e)

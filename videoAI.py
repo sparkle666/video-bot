@@ -52,6 +52,7 @@ def main():
         if len(script_content) < 30:
         		return "Erorr:: Script content too small..."
         #audio_voiceover = generate_audio(script_content, title)
+        audio_voiceover = "tats.mp3"
         print("____Converting script audio to subtitle___")
         #audio_subtitle = convert_audio_to_srt("tats.mp3")
         audio_subtitle = "tats.srt"
@@ -101,10 +102,10 @@ def main():
         final_bg_video = blurred_video
         
         if duplicated_videos.get("status"):
-        		print("___Adding Video To Clip.txt___")
+        		print("___Adding Video To Clip.txt___: Duplicated Videos", duplicated_videos.get("duplicated_files") )
         		clip_txt_file = add_video_to_file(duplicated_videos.get("duplicated_files"), video_filename)
         		print("___Concating Files From Clip.txt___")
-        		final_bg_video = concat_videos_from_file(clip_txt_file)
+        		final_bg_video = concat_videos_from_file(video_filename)
         print("___Adding Audio to Full Video__")
         full_video_with_audio = add_audio_to_video(final_bg_video, audio_voiceover, trim = True)
         # overlay downloaded videos on top the blured background video
@@ -166,7 +167,7 @@ def load_script() -> dict:
         script_contents = script[script_index + len("script:"):].strip()
         title = title[title_index + len("title:"):].strip()
         keywords = keywords[keyword_index + len("keywords:"):].strip().split(",")
-        print(title, keywords, script_contents)
+        #print(title, keywords, script_contents)
 				
         return {"title": title, "keywords": keywords, "content": script_contents }
   except Exception as e:
@@ -243,11 +244,13 @@ def convert_audio_to_srt(audio):
   
   
 def add_zoom_effect(picture, time = 10):
-  """ Adds a zoom effect to picture """
-  if os.path.exists(picture):
-    os.system(f'ffmpeg -loop 1 -i {picture} -y -filter_complex "[0]scale=1200:-2,setsar=1:1[out];[out]crop=1200:670[out];[out]scale=8000:-1,zoompan=z=\'zoom+0.001\':x=iw/2-(iw/zoom/2):y=ih/2-(ih/zoom/2):d=250:s=1200x670:fps=25[out]" -acodec aac -vcodec libx264 -map "[out]" -map 0:a? -pix_fmt yuv420p -r 25 -t {10} {picture.split(".")[0]}Zoomed.mp4')
-    return f"{picture.split('.')[0]}Zoomed.mp4"
-  return None
+	""" Adds a zoom effect to picture """
+	if os.path.exists(picture):
+		if os.path.exists(f"{picture.split('.')[0]}Zoomed.mp4"):
+			return f"{picture.split('.')[0]}Zoomed.mp4"
+		os.system(f'ffmpeg -loop 1 -i {picture} -y -filter_complex "[0]scale=1200:-2,setsar=1:1[out];[out]crop=1200:670[out];[out]scale=8000:-1,zoompan=z=\'zoom+0.001\':x=iw/2-(iw/zoom/2):y=ih/2-(ih/zoom/2):d=250:s=1200x670:fps=25[out]" -acodec aac -vcodec libx264 -map "[out]" -map 0:a? -pix_fmt yuv420p -r 25 -t {10} {picture.split(".")[0]}Zoomed.mp4')
+		return f"{picture.split('.')[0]}Zoomed.mp4"
+	return False
 
   
 def generate_pic_from_video(video: str) -> str:
@@ -280,7 +283,6 @@ def get_tenor_video_urls(anime_char, lmt=2):
         logging.exception("Error making requests")
 
   
-import os
 
 def download_video_from_url(char_name, url_list, isList=False):
     """Download video from url using ffmpeg"""
@@ -301,7 +303,7 @@ def download_video_from_url(char_name, url_list, isList=False):
     for url in url_list:
         if not os.path.exists(f"{new_char_name}{url_list.index(url)}.mp4"):
             os.system(f"ffmpeg -i {url} {new_char_name}{url_list.index(url)}.mp4")
-            vid.append(f"{new_char_name}{url_list.index(url)}.mp4")
+            #vid.append(f"{new_char_name}{url_list.index(url)}.mp4")
         vid.append(f"{new_char_name}{url_list.index(url)}.mp4")
 
     return {"status": True, "videos": vid}
@@ -309,9 +311,15 @@ def download_video_from_url(char_name, url_list, isList=False):
 #download_video_from_url("tatsmnaki pants", ["https://media.tenor.com/iryou742PKwAAAPo/rushia-uruha-rushia.mp4"], isList = True)
 
 def add_video_blur(video, blur_strength = 6):
-  os.system(f"ffmpeg -i {video} -vf 'boxblur={blur_strength}:1' {video.split('.')[0]}_blurred.mp4")
-  return f"{video.split('.')[0]}_blurred.mp4"
-  
+	if os.path.exists(video):
+		if os.path.exists(f"{video.split('.')[0]}_blurred.mp4"):
+			print("Exists...")
+			return f"{video.split('.')[0]}_blurred.mp4"
+		os.system(f"ffmpeg -i {video} -vf 'boxblur={blur_strength}:1' {video.split('.')[0]}_blurred.mp4")
+		return f"{video.split('.')[0]}_blurred.mp4"
+	return False
+	
+#add_video_blur("Tatsumashdhki0Zoomed.mp4")  
 def generate_audio(text, filename):
   """ Todo: Get text count and convert to seconds in audio, will be used to create the video length to match audio
   """
@@ -348,7 +356,7 @@ def add_audio_to_video(video, audio, trim = False):
 def add_subtitle_to_video(video, subtitle) -> str:
   """ Adds subtitle to a video. Sub color is a hex code written backwards e.g 12fff - fff21 with &H00 constant"""
   
-  if os.path.exists(f"{video}") and os.path.exists(f"{subtitle}.srt"):
+  if os.path.exists(f"{video}") and os.path.exists(f"{subtitle}"):
     os.system(f"ffmpeg -i {video} -vf subtitles={subtitle}:force_style='PrimaryColour=&H0000ffff' {video}WithSubtitle.mp4")
     
     print("Subtitled...")
@@ -357,9 +365,9 @@ def add_subtitle_to_video(video, subtitle) -> str:
   return "Path does not exist for video or subtitle"
   
 
-  
+add_subtitle_to_video("finalvideo11.mp4", "tats.srt")  
 # Project: Nairaland audio for Dairy section 
-main()
+#main()
 
 #add_zoom_effect("anotherkoko.jpg", 10)
 
