@@ -25,30 +25,32 @@ CKEY = config["CKEY"]
 elevenlabs = config["ELEVENLABS"]
 
 OVERLAY_MAX_TIME = 4
-# 1.Enter Script, character names. 2. Generate script audio, generate subtitles from script audio 3. Use main character names to make request to tenor for names. 4. For each video, extract 1 frame as jpg. 5. Resize and crop and images. 6. Check the duration of the script audio 7. Generate 3 zoom image as lomg as the duration from audio 8. Blur the zoomed video. 9 Calculate the duration/number of images to get gow much duration to keep picture or videos. 10. Place the images/videos cropped and edited into center of the video. 11. Add audio to video and sync. 12. Add subtitles and encode video. 12. End
-# Things to DEBUG: 1. Video not playing during after overlay 2. Add the video overlay and image overlay to video 3. clean up unnecessary generated videos like zooom, blurred and final video. 4. Make subtitles way bigger.
-# creating a db to store each requested api requests
+VIDEO_WIDTH = 1200 
+VIDEO_HEIGHT = 670 
+current_dir = os.getcwd()
+images_dir = f"{current_dir}/images"
+videos_dir = f"{current_dir}/videos"
+assets_dir = f"{current_dir}/assets"
+
 session = requests_cache.CachedSession("api_callsDB")
   
 
 # Todo: overlay video on top, write main function that 
-print_rule("Converting script audio to subtitle")
-
 
 def main():
     """ Main program to execute rest of the script """
     ## create images and video directory in current directory
-    os.mkdir("images")
-    os.mkdir("videos")
+    if not os.path.exists(images_dir):
+    	os.mkdir("images")
+    	#os.mkdir("videos")
     
     print_logo()
-    script = show_func_status(load_script, "loading script")
+    script = load_script()
     title = ""
     video_filename = "clip2.txt"
     final_bg_video = ""
     num_videos = 1
     final_bg_video = None
-    
     if script:
         temp_title = script.get("title").split()
         title = temp_title[0]
@@ -56,16 +58,16 @@ def main():
         if len(title) >= 2:
             title = temp_title[0] + "_" + temp_title[1]
         keywords = script.get("keywords")
-        
+        #print(keywords)
         script_content = script.get("content")
         if len(script_content) < 30:
         		return "Erorr:: Script content too small..."
         		sys.exit(1)
-        audio_voiceover = generate_audio(script_content, title)
-        #audio_voiceover = "tats.mp3"
+        #audio_voiceover = generate_audio(script_content, title)
+        audio_voiceover = "tats.mp3"
         print_rule("Converting script audio to subtitle")
-        audio_subtitle = convert_audio_to_srt("tats.mp3")
-        #audio_subtitle = "tats.srt"
+        #audio_subtitle = convert_audio_to_srt("tats.mp3")
+        audio_subtitle = "tats.srt"
         print_border(f"Converted to srt : {audio_subtitle}")
         print_rule("Getting audio data")
         audio_data = get_video_data("tats.mp3", isVideo=False)
@@ -74,64 +76,53 @@ def main():
         if audio_duration > 10:
         		print_border("Audio is > 10 secs")
         		num_videos = math.ceil(audio_duration/10)
-        all_downloaded_videos_filenames = []
+        all_downloaded_picture_filenames = []
         all_downloaded_videos = {}
         # Get total pic to fetch and divide for the number of each keyword
-        print_rule("Calcing Total audio to fetch")	
+        print_rule("Calcing Total Image to fetch")	
         total_video_to_fetch = int(audio_duration//OVERLAY_MAX_TIME)
         total_video_per_keyword = int(total_video_to_fetch // len(keywords))
-        print_border(f"Total video: {total_video_to_fetch} | total_video_per_keyword: {total_video_per_keyword}")
-        for counter in range(len(keywords)):
-        		#if keywords.split()
-        		print_rule(f"Fetching Urls from tenor for: {keywords[counter]}")
-        		urls = get_tenor_video_urls(keywords[counter], total_video_per_keyword)
-        		print_rule(f"Downloading Videos for: {keywords[counter]}, urls: {urls}")
-        		videos_filenames = download_video_from_url(keywords[counter], urls, isList = True)
+        print_border(f"Total Images: {total_video_to_fetch} | total_image_per_keyword: {total_video_per_keyword}")
+        download_status = google_download_images(keywords, total_video_per_keyword, isList = True)
+        if download_status == True:
+        	os.chdir(images_dir)
+        	all_images = os.listdir()
+        	first_pic = all_images[0]
+        	all_images_resized = [add_border_to_image(img, f"{img}_resized.jpg") for img in all_images]
+        	print_rule("Converting Image to video with Zoom Effect")
         	
-        		all_downloaded_videos_filenames += videos_filenames.get("videos")
-        		print_border(f"___All Downloaded Videos FileNames for: {keywords[counter]}___  filenames: {all_downloaded_videos_filenames}")
-        		#all_downloaded_videos[keywords[counter]] = videos_filenames.get("videos") 
-        		
-        #print(keywords[0], downloaded_videos)
-        # Get one frame from a video to use as background blur
-        print_rule("Done With Downloading Videos For Each Keyword")
-        first_video = all_downloaded_videos_filenames[0]
-        #first_video = all_downloaded_videos.get("videos")[0]
-        print_rule("Generating Picture from Video", first_video)
-        picture = generate_pic_from_video(first_video)
-        print_border("___Pic Name___ - ", picture)
-        #resized_picture = resize_(picture, "bg_resized.jpg", width = 1200, height = 670)
-        # Get number of vidoeos to use as background
-        print_rule("Converting to video with Zoom Effect")
-        zoomed_video = add_zoom_effect(picture)
-        print_rule("Adding Blurred Effect")
-        blurred_video = add_video_blur(zoomed_video)
-        print_border(f"___Duplicating File {num_videos} x times____")
-        duplicated_videos = duplicate_file(blurred_video, num_videos)
+        	picture = resize_(first_pic, f"{first_pic}_resized.jpg", False, VIDEO_WIDTH, VIDEO_HEIGHT)
+        	zoomed_video = add_zoom_effect(picture)
+        	
+        	print_rule("Adding Blurred Effect")
+        	blurred_video = add_video_blur(zoomed_video)
+        	print_border(f"___Duplicating File {num_videos} x times____")
+        	duplicated_videos = duplicate_file(blurred_video, num_videos)
         
-        final_bg_video = blurred_video
+        	final_bg_video = blurred_video
         
-        if duplicated_videos.get("status"):
+        	if duplicated_videos.get("status"):
         		print_border("___Adding Video To Clip.txt___: Duplicated Videos", duplicated_videos.get("duplicated_files") )
         		clip_txt_file = add_video_to_file(duplicated_videos.get("duplicated_files"), video_filename)
         		print_rule("Concating Files From Clip.txt")
         		final_bg_video = concat_videos_from_file(video_filename)
-        print_rule("Adding Audio to Full Video")
-        full_video_with_audio = add_audio_to_video(final_bg_video, audio_voiceover, trim = True)
-        # overlay downloaded videos on top the blured background video
-        print_rule("Overlaying Videos In Center")
-        time_interval = audio_duration / total_video_to_fetch
-        # For each loop, increase start by 
-        start = 0
-        stop = 0
-        for index in list(range(total_video_to_fetch)):
-        		stop += time_interval
-        		start = stop - time_interval
-        		overlay_video_in_center(full_video_with_audio, all_downloaded_videos_filenames[index], start, stop, f"finalvideo{index}.mp4")
-        		full_video_with_audio = f"finalvideo{index}.mp4"
-        print_rule("Adding Subtitle to Video")
-        subtitled = add_subtitle_to_video(full_video_with_audio, audio_subtitle)
-        print_rule("Omo... We throughhhhhh...")	
+        	print_rule("Adding Audio to Full Video")
+        	full_video_with_audio = add_audio_to_video(final_bg_video, audio_voiceover, trim = True)
+      	 # overlay downloaded videos on top the blured background video
+        	print_rule("Overlaying Videos In Center")
+        	time_interval = audio_duration / total_video_to_fetch
+        	return
+        	# For each loop, increase start by time time_interval, set back full_video_with_audio to the new index and loop till end
+        	start = 0
+        	stop = 0
+        	for index in list(range(total_video_to_fetch)):
+        			stop += time_interval
+        			start = stop - time_interval
+        			overlay_video_in_center(full_video_with_audio, all_images_resized[index], start, stop, f"finalvideo{index}.mp4")
+        			full_video_with_audio = f"finalvideo{index}.mp4"
+        	print_rule("Adding Subtitle to Video")
+        	subtitled = add_subtitle_to_video(full_video_with_audio, audio_subtitle)
+        	print_rule("Omo... We throughhhhhh...")	
         
 
 def google_download_images(query_list: list, num_of_images: int = 3, isList = False) -> bool:
@@ -150,7 +141,7 @@ def google_download_images(query_list: list, num_of_images: int = 3, isList = Fa
 				save_filename = query
 				_search_params['q'] = query
 				temp = query.split()
-				if temp > 1:
+				if len(temp) > 1:
 					save_filename = temp[0] + "_" + temp[1]
 				gis.search(search_params=_search_params)
 				image_urls = [image.url for image in gis.results()]
@@ -162,6 +153,7 @@ def google_download_images(query_list: list, num_of_images: int = 3, isList = Fa
 					file = open(f"{os.getcwd()}/images/{save_filename}{index}.jpg", "wb")
 					file.write(url_content)
 					file.close()
+			print_rule("Done With Downloading images...")
 			return True
 		
 		save_filename = query_list.split()[0]
@@ -233,17 +225,25 @@ def overlay_video_in_center(background_video, foreground_video, start, stop, ove
   except Exception as e:
     print("Error overlaying video...", e)
 
-#overlay_video_in_center("anotherkokoZoomed.mp4", "saitamaSmall.mp4", 0, 6, "shrink.mp4")
+#overlay_video_in_center("anotherkokoZoomed.mp4", "anotherkoko.jpg", 0, 6, "shrink.mp4")
+#resize_("tatsumaki_colored0.jpg", "tatsu.jpg", width = 1299, height = 670)
 
-def add_border_to_image(image, new_filename, borderwidth =  40, color= "white"):
-  """ Adds a border of x length to an image """
+def add_border_to_image(image, new_filename, borderwidth =  12, color= "white"):
+  """ Adds a border of x length to an image, resize to 60% of main video width and saves """
   try:
-      ImageOps.expand(Image.open(f'{image}'),border=borderwidth,fill=f'{color}').save(f'{new_filename}')
-      return new_filename
+			height = int(VIDEO_HEIGHT * 0.6)
+			width = int(VIDEO_WIDTH * 0.6)
+			print(width, height)
+			im = Image.open(image)
+			im = im.convert("RGB")
+			cropped_image = ImageOps.fit(im, (width, height))
+			ImageOps.expand(cropped_image, border=borderwidth,fill=f'{color}').save(f'{new_filename}')
+			print_border("Resized, border added...")
+			return new_filename
   except Exception as e:
       logging.exception("Error adding border...", e)
 
-#add_border_to_image("zoomtest.jpg", new_filename = "anotherkoko.jpg")
+#add_border_to_image("garou.jpg", new_filename = "garounew.jpg")
   
 def api_call_hook(endpoint, method, payload = None, headers = None):
   """ 
@@ -263,7 +263,7 @@ def api_call_hook(endpoint, method, payload = None, headers = None):
   else:
     return "Request method out of scope..."
 
-google_download_images("Saitama colored")  
+#google_download_images(["Saitama colored", "saitama angry"], isList = True)  
 
 def convert_audio_to_srt(audio):
   """ Gets audio, sends to open ai whisper to make translate to srt
@@ -305,10 +305,10 @@ def generate_pic_from_video(video: str) -> str:
   """ Generates pic from video"""
   splitted = video.split(".")
   os.system(f"ffmpeg -i {video} -vf 'select=eq(n\,0)' -frames:v 1 -pattern_type none -s 1200x670 -f image2 {splitted[0]}.jpg")
+  resize_(f"{splitted[0]}.jpg", f"{splitted[0]}resized.jpg", width = 1200, height = 670)
+  return f"{splitted[0]}resized.jpg"
   
-  return f"{splitted[0]}.jpg"
-  
-#generate_pic_from_video("tatsumaki_colored0.mp4")
+#generate_pic_from_video("Tatsumaki0.mp4")
 
 def get_tenor_video_urls(anime_char, lmt=2):
     """ Downloads character in list from tenor"""
@@ -417,7 +417,7 @@ def add_subtitle_to_video(video, subtitle) -> str:
 
 #add_subtitle_to_video("finalvideo11.mp4", "tats.srt")  
 # Project: Nairaland audio for Dairy section 
-#main()
+main()
 
 #add_zoom_effect("anotherkoko.jpg", 10)
 

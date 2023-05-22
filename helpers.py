@@ -64,11 +64,10 @@ def resize_(image, resized_filename: str, isVideo = False, width = 0, height = 0
           input_image = Image.open(image)
           converted = input_image.convert("RGB")
           # Crop the image
-          cropped_image = converted.resize((width, height))
-          # Save the cropped image
+          cropped_image = ImageOps.fit(converted, (width, height))
           cropped_image.save(f"{resized_filename}")
           print("resized successfully...")
-          return True
+          return f"{resized_filename}"
       except Exception as e:
           print("Error resizing picture", e)
 
