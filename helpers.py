@@ -18,11 +18,11 @@ def encode_to_H264(videos, extension="mp4", isList=False):
     try:
         if isList:
             for video in videos:
-                os.system(f"ffmpeg -i {video} -c:v libx264 {video.split('.')[0]}_encoded.{extension}")
+                os.system(f"ffmpeg -hide_banner -i {video} -c:v libx264 {video.split('.')[0]}_encoded.{extension}")
                 encoded_videos.append(f"{video.split('.')[0]}_encoded.{extension}")
             return encoded_videos
         else:
-            os.system(f"ffmpeg -i {videos} -c:v libx264 {videos.split('.')[0]}_encoded.{extension}")
+            os.system(f"ffmpeg -hide_banner -i {videos} -c:v libx264 {videos.split('.')[0]}_encoded.{extension}")
             return f"{videos.split('.')[0]}_encoded.{extension}"
     except Exception as e:
         logging.exception("Error: ", e)
@@ -54,7 +54,7 @@ def resize_(image, resized_filename: str, isVideo = False, width = 0, height = 0
   if isVideo:
     try: 
     		# Scale to 80% of 650 used in main background.
-        os.system(f"ffmpeg -i {image} -vf scale=iw*0.8:-1 {resized_filename}")
+        os.system(f"ffmpeg -hide_banner -i {image} -vf scale=iw*0.8:-1 {resized_filename}")
         return True
     except Exception as e:
         print("Error...", e)
@@ -119,7 +119,7 @@ def concat_videos_from_file(filename: str, extension = "mp4"):
 	if not splitted[1] == "txt":
 			return False
 	try:
-			os.system(f"ffmpeg -f concat -safe 0 -i {filename} -c copy final_zipped.{extension}")
+			os.system(f"ffmpeg -hide_banner -f concat -safe 0 -i {filename} -c copy final_zipped.{extension}")
 			return f"final_zipped.{extension}"
 	except Exception as e:
 			logging.extension("Error: ", e)

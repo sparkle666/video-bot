@@ -61,8 +61,9 @@ def main():
         #print(keywords)
         script_content = script.get("content")
         if len(script_content) < 30:
-        		return "Erorr:: Script content too small..."
-        		sys.exit(1)
+          print_border("Erorr:: Script content too small...")
+          sys.exit(-1)
+            
         #audio_voiceover = generate_audio(script_content, title)
         audio_voiceover = "tats.mp3"
         print_rule("Converting script audio to subtitle")
@@ -74,8 +75,8 @@ def main():
         print(audio_data)
         audio_duration = audio_data.get("duration")
         if audio_duration > 10:
-        		print_border("Audio is > 10 secs")
-        		num_videos = math.ceil(audio_duration/10)
+          print_border("Audio is > 10 secs")
+          num_videos = math.ceil(audio_duration/10)
         all_downloaded_picture_filenames = []
         all_downloaded_videos = {}
         # Get total pic to fetch and divide for the number of each keyword
@@ -83,95 +84,100 @@ def main():
         total_video_to_fetch = int(audio_duration//OVERLAY_MAX_TIME)
         total_video_per_keyword = int(total_video_to_fetch // len(keywords))
         print_border(f"Total Images: {total_video_to_fetch} | total_image_per_keyword: {total_video_per_keyword}")
-        download_status = google_download_images(keywords, total_video_per_keyword, isList = True)
-        if download_status == True:
-        	os.chdir(images_dir)
-        	all_images = os.listdir()
-        	first_pic = all_images[0]
-        	all_images_resized = [add_border_to_image(img, f"{img}_resized.jpg") for img in all_images]
-        	print_rule("Converting Image to video with Zoom Effect")
-        	
-        	picture = resize_(first_pic, f"{first_pic}_resized.jpg", False, VIDEO_WIDTH, VIDEO_HEIGHT)
-        	zoomed_video = add_zoom_effect(picture)
-        	
-        	print_rule("Adding Blurred Effect")
-        	blurred_video = add_video_blur(zoomed_video)
-        	print_border(f"___Duplicating File {num_videos} x times____")
-        	duplicated_videos = duplicate_file(blurred_video, num_videos)
+        all_images = google_download_images(keywords, total_video_per_keyword, isList = True)
         
-        	final_bg_video = blurred_video
-        
-        	if duplicated_videos.get("status"):
-        		print_border("___Adding Video To Clip.txt___: Duplicated Videos", duplicated_videos.get("duplicated_files") )
-        		clip_txt_file = add_video_to_file(duplicated_videos.get("duplicated_files"), video_filename)
-        		print_rule("Concating Files From Clip.txt")
-        		final_bg_video = concat_videos_from_file(video_filename)
-        	print_rule("Adding Audio to Full Video")
-        	full_video_with_audio = add_audio_to_video(final_bg_video, audio_voiceover, trim = True)
-      	 # overlay downloaded videos on top the blured background video
-        	print_rule("Overlaying Videos In Center")
-        	time_interval = audio_duration / total_video_to_fetch
-        	return
-        	# For each loop, increase start by time time_interval, set back full_video_with_audio to the new index and loop till end
-        	start = 0
-        	stop = 0
-        	for index in list(range(total_video_to_fetch)):
-        			stop += time_interval
-        			start = stop - time_interval
-        			overlay_video_in_center(full_video_with_audio, all_images_resized[index], start, stop, f"finalvideo{index}.mp4")
-        			full_video_with_audio = f"finalvideo{index}.mp4"
-        	print_rule("Adding Subtitle to Video")
-        	subtitled = add_subtitle_to_video(full_video_with_audio, audio_subtitle)
-        	print_rule("Omo... We throughhhhhh...")	
+        if all_images:
+
+          first_pic = all_images[0]
+          all_images_resized = [add_border_to_image(img, f"{img.split('.')[0]}_resized.jpg") for img in all_images]
+          print_rule("Converting Image to video with Zoom Effect")
+          picture = resize_(first_pic, f"{first_pic}_resized.jpg", False, VIDEO_WIDTH, VIDEO_HEIGHT)
+          zoomed_video = add_zoom_effect(picture)
+          print_rule("Adding Blurred Effect")
+          blurred_video = add_video_blur(zoomed_video)
+          print_border(f"Duplicating File {num_videos} x times")
+          duplicated_videos = duplicate_file(blurred_video, num_videos)
+
+          final_bg_video = blurred_video
+
+          if duplicated_videos.get("status"):
+            print_border("___Adding Video To Clip.txt___: Duplicated Videos", duplicated_videos.get("duplicated_files") )
+            clip_txt_file = add_video_to_file(duplicated_videos.get("duplicated_files"), video_filename)
+            print_rule("Concating Files From Clip.txt")
+            final_bg_video = concat_videos_from_file(video_filename)
+          print_rule("Adding Audio to Full Video")
+          full_video_with_audio = add_audio_to_video(final_bg_video, audio_voiceover, trim = True)
+          # overlay downloaded videos on top the blured background video
+          print_rule("Overlaying Videos In Center")
+          time_interval = audio_duration / total_video_to_fetch
+        # 	# For each loop, increase start by time time_interval, set back full_video_with_audio to the new index and loop till end
+          start = 0
+          stop = 0
+          for index in list(range(total_video_to_fetch)):
+              stop += time_interval
+              start = stop - time_interval
+              overlay_video_in_center(full_video_with_audio, all_images_resized[index], start, stop, f"finalvideo{index}.mp4")
+              full_video_with_audio = f"finalvideo{index}.mp4"
+          print_rule("Adding Subtitle to Video")
+          subtitled = add_subtitle_to_video(full_video_with_audio, audio_subtitle)
+          print_rule("Omo... We throughhhhhh...")	
         
 
 def google_download_images(query_list: list, num_of_images: int = 3, isList = False) -> bool:
-	""" Download Image from Google. Check if query is a list, splits the query to eg : saitama_power to enable a better filename saving format """
-  
-	gis = GoogleImagesSearch(google_key, google_project_id)
-	_search_params = {
-			'q': query_list,
-			'num': num_of_images,
-			'fileType': 'jpg',
-		}
-  
-	with console.status("Downloading Images from Google"):
-		if isList:
-			for index, query in enumerate(query_list):
-				save_filename = query
-				_search_params['q'] = query
-				temp = query.split()
-				if len(temp) > 1:
-					save_filename = temp[0] + "_" + temp[1]
-				gis.search(search_params=_search_params)
-				image_urls = [image.url for image in gis.results()]
-				
-				for index, url in enumerate(image_urls):
-					if os.path.exists(f"{os.getcwd()}/images/{save_filename}{index}.jpg"):
-						continue
-					url_content = api_call_hook(url, method = "get")
-					file = open(f"{os.getcwd()}/images/{save_filename}{index}.jpg", "wb")
-					file.write(url_content)
-					file.close()
-			print_rule("Done With Downloading images...")
-			return True
-		
-		save_filename = query_list.split()[0]
-		print_border("Fetching Image...")
-		gis.search(search_params=_search_params)
-		#image_url = gis.results()[0].url
-		image_urls = [image.url for image in gis.results()]
-		for index, url in enumerate(image_urls):
-			if os.path.exists(f"{os.getcwd()}/images/{save_filename}{index}.jpg"):
-				# If file already exists then skip.
-				continue
-			image_content = api_call_hook(url, method = "get")
-			with open(f"{os.getcwd()}/images/{save_filename}{index}.jpg", "wb") as f:
-				f.write(image_content)
-		print_rule("Images Fetched and Saved")
-		return True
+  """ Download Image from Google. Check if query is a list, splits the query to 
+  eg : saitama_power to enable a better filename saving format """
 
+  gis = GoogleImagesSearch(google_key, google_project_id)
+  _search_params = {
+      'q': query_list,
+      'num': num_of_images,
+      'fileType': 'jpg',
+    }
 
+  downloaded_files = []
+  
+  with console.status("Downloading Images from Google"):
+    if isList:
+      for index, query in enumerate(query_list):
+        save_filename = query
+        _search_params['q'] = query
+        temp = query.split()
+        if len(temp) > 1:
+          save_filename = temp[0] + "_" + temp[1]
+        gis.search(search_params=_search_params)
+        image_urls = [image.url for image in gis.results()]
+        
+        for index, url in enumerate(image_urls):
+          if os.path.exists(f"{save_filename}{index}.jpg"):
+            print_border(f"{save_filename}{index}.jpg already exists...")
+            downloaded_files.append(f"{save_filename}{index}.jpg")
+            continue
+          image_content = api_call_hook(url, method = "get")
+          file = open(f"{save_filename}{index}.jpg", "wb")
+          file.write(image_content)
+          file.close()
+          downloaded_files.append(f"{save_filename}{index}.jpg")
+      print_rule("Done With Downloading images...")
+      print(downloaded_files)
+      return downloaded_files
+    # If image_urls is not a list
+    save_filename = query_list.split()[0]
+    print_border("Fetching Image...")
+    gis.search(search_params=_search_params)
+    #image_url = gis.results()[0].url
+    image_urls = [image.url for image in gis.results()]
+    for index, url in enumerate(image_urls):
+      if os.path.exists(f"{save_filename}{index}.jpg"):
+        # If file already exists then skip.
+        print_border(f"{save_filename}{index}.jpg already exists...")
+        downloaded_files.append(f"{save_filename}{index}.jpg")
+        continue
+      image_content = api_call_hook(url, method = "get")
+      with open(f"{save_filename}{index}.jpg", "wb") as f:
+        f.write(image_content)
+      downloaded_files.append(f"{save_filename}{index}.jpg")
+    print_rule("Images Fetched and Saved")
+    return True
 
     
 def load_script() -> dict:
@@ -218,7 +224,7 @@ def load_script() -> dict:
 def overlay_video_in_center(background_video, foreground_video, start, stop, overlay_name ):
   """ Adds a video or image in the center of another video
   """
-  ffmpeg_overlay = f'ffmpeg -i {background_video} -i {foreground_video} -filter_complex "[0:v][1:v]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2:enable=\'between(t,{start},{stop})\'" -c:a copy {overlay_name}'
+  ffmpeg_overlay = f'ffmpeg -hide_banner -i {background_video} -i {foreground_video} -filter_complex "[0:v][1:v]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2:enable=\'between(t,{start},{stop})\'" -c:a copy {overlay_name}'
   try:
       os.system(ffmpeg_overlay)
       return True
@@ -230,6 +236,7 @@ def overlay_video_in_center(background_video, foreground_video, start, stop, ove
 
 def add_border_to_image(image, new_filename, borderwidth =  12, color= "white"):
   """ Adds a border of x length to an image, resize to 60% of main video width and saves """
+  # TODO: Check if image already exist and skip if true
   try:
 			height = int(VIDEO_HEIGHT * 0.6)
 			width = int(VIDEO_WIDTH * 0.6)
@@ -238,7 +245,7 @@ def add_border_to_image(image, new_filename, borderwidth =  12, color= "white"):
 			im = im.convert("RGB")
 			cropped_image = ImageOps.fit(im, (width, height))
 			ImageOps.expand(cropped_image, border=borderwidth,fill=f'{color}').save(f'{new_filename}')
-			print_border("Resized, border added...")
+			print_border(f"Resized, border added...{new_filename}")
 			return new_filename
   except Exception as e:
       logging.exception("Error adding border...", e)
@@ -296,15 +303,14 @@ def add_zoom_effect(picture, time = 10):
 	if os.path.exists(picture):
 		if os.path.exists(f"{picture.split('.')[0]}Zoomed.mp4"):
 			return f"{picture.split('.')[0]}Zoomed.mp4"
-		os.system(f'ffmpeg -loop 1 -i {picture} -y -filter_complex "[0]scale=1200:-2,setsar=1:1[out];[out]crop=1200:670[out];[out]scale=8000:-1,zoompan=z=\'zoom+0.001\':x=iw/2-(iw/zoom/2):y=ih/2-(ih/zoom/2):d=250:s=1200x670:fps=25[out]" -acodec aac -vcodec libx264 -map "[out]" -map 0:a? -pix_fmt yuv420p -r 25 -t {10} {picture.split(".")[0]}Zoomed.mp4')
+		os.system(f'ffmpeg -hide_banner -loop 1 -i {picture} -y -filter_complex "[0]scale=1200:-2,setsar=1:1[out];[out]crop=1200:670[out];[out]scale=8000:-1,zoompan=z=\'zoom+0.001\':x=iw/2-(iw/zoom/2):y=ih/2-(ih/zoom/2):d=250:s=1200x670:fps=25[out]" -acodec aac -vcodec libx264 -map "[out]" -map 0:a? -pix_fmt yuv420p -r 25 -t {10} {picture.split(".")[0]}Zoomed.mp4')
 		return f"{picture.split('.')[0]}Zoomed.mp4"
-	return False
 
   
 def generate_pic_from_video(video: str) -> str:
   """ Generates pic from video"""
   splitted = video.split(".")
-  os.system(f"ffmpeg -i {video} -vf 'select=eq(n\,0)' -frames:v 1 -pattern_type none -s 1200x670 -f image2 {splitted[0]}.jpg")
+  os.system(f"ffmpeg -hide_banner -i {video} -vf 'select=eq(n\,0)' -frames:v 1 -pattern_type none -s 1200x670 -f image2 {splitted[0]}.jpg")
   resize_(f"{splitted[0]}.jpg", f"{splitted[0]}resized.jpg", width = 1200, height = 670)
   return f"{splitted[0]}resized.jpg"
   
@@ -343,14 +349,14 @@ def download_video_from_url(char_name, url_list, isList=False):
         new_char_name = f"{splitted[0]}_{splitted[1]}"
 
     if not isList:
-        os.system(f"ffmpeg -i {url_list} {new_char_name}.mp4")
+        os.system(f"ffmpeg -hide_banner -i {url_list} {new_char_name}.mp4")
         return f"{new_char_name}.mp4"
 
     vid = []
 
     for url in url_list:
         if not os.path.exists(f"{new_char_name}{url_list.index(url)}.mp4"):
-            os.system(f"ffmpeg -i {url} {new_char_name}{url_list.index(url)}.mp4")
+            os.system(f"ffmpeg -hide_banner -i {url} {new_char_name}{url_list.index(url)}.mp4")
             #vid.append(f"{new_char_name}{url_list.index(url)}.mp4")
         vid.append(f"{new_char_name}{url_list.index(url)}.mp4")
 
@@ -363,11 +369,11 @@ def add_video_blur(video, blur_strength = 6):
 		if os.path.exists(f"{video.split('.')[0]}_blurred.mp4"):
 			print("Exists...")
 			return f"{video.split('.')[0]}_blurred.mp4"
-		os.system(f"ffmpeg -i {video} -vf 'boxblur={blur_strength}:1' {video.split('.')[0]}_blurred.mp4")
+		# os.system(f"ffmpeg -hide_banner -i {video} -vf 'boxblur={blur_strength}:2' {video.split('.')[0]}_blurred.mp4")
+		os.system(f'ffmpeg -hide_banner -i {video} -vf "boxblur={blur_strength}:1" {video.split(".")[0]}_blurred.mp4')
 		return f"{video.split('.')[0]}_blurred.mp4"
-	return False
 	
-#add_video_blur("Tatsumashdhki0Zoomed.mp4")  
+# add_video_blur("saitama_colored3Zoomed.mp4")  
 def generate_audio(text, filename):
   """ Todo: Get text count and convert to seconds in audio, will be used to create the video length to match audio
   """
@@ -392,13 +398,18 @@ def generate_audio(text, filename):
 def add_audio_to_video(video, audio, trim = False):
   """ Add audio to video and trim the video to length of audio
   """
+  #  If the video has been generated before but exited due to error, return the previous video
   splitted = video.split(".")
+  
+  if os.path.exists(f"{splitted[0]}withaudio.mp4"):
+    return f"{splitted[0]}withaudio.mp4"
+  
   if os.path.exists(f"{video}") and os.path.exists(f"{audio}"):
     if trim:
-      os.system(f"ffmpeg -i {video} -i {audio} -c:v copy -c:a aac -shortest {splitted[0]}withaudio.mp4")
-      return f"{[splitted[0]]}withaudio.mp4"
+      os.system(f"ffmpeg -hide_banner -i {video} -i {audio} -c:v copy -c:a aac -shortest {splitted[0]}withaudio.mp4")
+      return f"{splitted[0]}withaudio.mp4"
     else:
-      os.system(f"ffmpeg -i {video} -i {audio} -c:v copy -c:a aac {splitted[0]}withaudio.mp4")
+      os.system(f"ffmpeg -hide_banner -i {video} -i {audio} -c:v copy -c:a aac {splitted[0]}withaudio.mp4")
     return f"{splitted[0]}withaudio.mp4"
   print("Either audio or video does not exist in current directory...")
 
@@ -407,7 +418,7 @@ def add_subtitle_to_video(video, subtitle) -> str:
   
   splitted = video.split(".")
   if os.path.exists(f"{video}") and os.path.exists(f"{subtitle}"):
-    os.system(f"ffmpeg -i {video} -vf subtitles={subtitle}:force_style='PrimaryColour=&H0000ffff' {splitted[0]}WithSubtitle.mp4")
+    os.system(f"ffmpeg -hide_banner -i {video} -vf subtitles={subtitle}:force_style='PrimaryColour=&H0000ffff' {splitted[0]}WithSubtitle.mp4")
     
     print("Subtitled...")
     return f"{splitted[0]}WithSubtitle.mp4"
