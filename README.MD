@@ -24,3 +24,11 @@
 - Add upload to youtube feature
 - Add auto ffmpeg download feature
 - Add more documentation
+
+
+### Position a list of images into a video ffmpeg
+ffmpeg -i final_zippedwithaudio.mp4 -i saitama_angry0_resized.jpg -i saitama_angry1_resized.jpg -i saitama_angry2_resized.jpg \
+-filter_complex "[0][1]overlay=x=(W-w)/2:y=(H-h)/2:enable='between(t,0,4)'[v1]; \
+[v1][2]overlay=x=(W-w)/2:y=(H-h)/2:enable='between(t,4,8)'[v2]; \
+[v2][3]overlay=x=(W-w)/2:y=(H-h)/2:enable='gt(t,8)'[v3]" \
+-map "[v3]" -map 0:a out.mp4

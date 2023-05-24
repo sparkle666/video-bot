@@ -428,7 +428,7 @@ def add_subtitle_to_video(video, subtitle) -> str:
 
 #add_subtitle_to_video("finalvideo11.mp4", "tats.srt")  
 # Project: Nairaland audio for Dairy section 
-main()
+# main()
 
 #add_zoom_effect("anotherkoko.jpg", 10)
 
