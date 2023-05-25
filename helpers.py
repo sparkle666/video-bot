@@ -122,10 +122,10 @@ def concat_videos_from_file(filename: str, extension = "mp4"):
 			os.system(f"ffmpeg -hide_banner -f concat -safe 0 -i {filename} -c copy final_zipped.{extension}")
 			return f"final_zipped.{extension}"
 	except Exception as e:
-			logging.extension("Error: ", e)
+			logging.exception("Error: ", e)
 
 
-def generate_ffmpeg_command(video_file, image_list, duration_dict, output_file):
+def overlay_multiple_images(video_file, image_list, duration_dict, output_file):
     filter_complex = ""
     overlay_counter = 1
 
@@ -146,27 +146,16 @@ def generate_ffmpeg_command(video_file, image_list, duration_dict, output_file):
         f'ffmpeg -hide_banner -i {video_file} {" ".join(["-i " + image for image in image_list])} '
         f'-filter_complex "{filter_complex}" -map "[v{overlay_counter-1}]" -map 0:a -preset ultrafast {output_file}'
     )
+    try:
+        os.system(ffmpeg_command)
+        return output_file
+    except Exception as e:
+        logging.exception("Error: ", e)
+        
 
-    print(ffmpeg_command)
 
 
-# Example usage
-video_file = 'final_zippedwithaudio.mp4'
-image_list = [
-    'saitama_angry0_resized.jpg',
-    'saitama_angry1_resized.jpg',
-    'saitama_angry2_resized.jpg',
-    'saitama_colored0_resized.jpg'
-]
-duration_dict = {
-    'saitama_angry0_resized.jpg': {'start': 0, 'stop': 4},
-    'saitama_angry1_resized.jpg': {'start': 4, 'stop': 8},
-    'saitama_angry2_resized.jpg': {'start': 8, 'stop': 12},
-    'saitama_colored0_resized.jpg': {'start': 12, 'stop': 16},
-}
-output_file = 'out.mp4'
-
-generate_ffmpeg_command(video_file, image_list, duration_dict, output_file)
+# overlay_multiple_images(video_file, image_list, duration_dict, output_file)
 
 
 

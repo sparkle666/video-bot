@@ -2,6 +2,7 @@ import os
 import sys
 import requests
 import math
+import time
 import logging
 from dotenv import load_dotenv
 from dotenv import dotenv_values
@@ -13,6 +14,7 @@ from google_images_search import GoogleImagesSearch
 from constants import voices
 from helpers import resize_, get_video_data, duplicate_file, add_video_to_file, concat_videos_from_file
 from console import *
+from helpers import overlay_multiple_images
 
 
 config = dotenv_values(".env")
@@ -45,6 +47,8 @@ def main():
     	#os.mkdir("videos")
     
     print_logo()
+    time.sleep(2)
+    
     script = load_script()
     title = ""
     video_filename = "clip2.txt"
@@ -111,15 +115,21 @@ def main():
           print_rule("Overlaying Videos In Center")
           time_interval = audio_duration / total_video_to_fetch
         # 	# For each loop, increase start by time time_interval, set back full_video_with_audio to the new index and loop till end
-          start = 0
+          start = 0 
           stop = 0
-          for index in list(range(total_video_to_fetch)):
+          duration_dict = {} # Hold the duration of each video
+          for index, image in enumerate(all_images_resized):
               stop += time_interval
               start = stop - time_interval
-              overlay_video_in_center(full_video_with_audio, all_images_resized[index], start, stop, f"finalvideo{index}.mp4")
-              full_video_with_audio = f"finalvideo{index}.mp4"
+              duration_dict[image] = {"start": start, 'stop': stop}
+              # overlay_video_in_center(full_video_with_audio, all_images_resized[index], start, stop, f"finalvideo{index}.mp4")
+              # full_video_with_audio = f"finalvideo{index}.mp4"
+          # print("Duration: ", duration_dict)
+          # print("all image file rezized: ", all_images_resized)
+          
+          overlayed_video = overlay_multiple_images(full_video_with_audio, all_images_resized, duration_dict, f"{title}.mp4")
           print_rule("Adding Subtitle to Video")
-          subtitled = add_subtitle_to_video(full_video_with_audio, audio_subtitle)
+          subtitled = add_subtitle_to_video(overlayed_video, audio_subtitle)
           print_rule("Omo... We throughhhhhh...")	
         
 
@@ -413,26 +423,26 @@ def add_audio_to_video(video, audio, trim = False):
     return f"{splitted[0]}withaudio.mp4"
   print("Either audio or video does not exist in current directory...")
 
-def add_subtitle_to_video(video, subtitle) -> str:
+def add_subtitle_to_video(video : str, subtitle: str) -> str:
   """ Adds subtitle to a video. Sub color is a hex code written backwards e.g 12fff - fff21 with &H00 constant"""
   
   splitted = video.split(".")
   if os.path.exists(f"{video}") and os.path.exists(f"{subtitle}"):
-    os.system(f"ffmpeg -hide_banner -i {video} -vf subtitles={subtitle}:force_style='PrimaryColour=&H0000ffff' {splitted[0]}WithSubtitle.mp4")
-    
-    print("Subtitled...")
+    command = [
+    'ffmpeg',
+    '-hide_banner',
+    '-i', 'One_Punch.mp4',
+    '-vf', "subtitles=tats.srt:force_style='PrimaryColour=&H0000ffff'",
+    '-preset ultrafast',
+    'One_PunchWithSubtitle.mp4'
+    ]
+    subprocess.run(command)
     return f"{splitted[0]}WithSubtitle.mp4"
+  
   print("failed")
   return "Path does not exist for video or subtitle"
   
 
-#add_subtitle_to_video("finalvideo11.mp4", "tats.srt")  
+# add_subtitle_to_video("One_Punch.mp4", "tats.srt")  
 # Project: Nairaland audio for Dairy section 
-# main()
-
-#add_zoom_effect("anotherkoko.jpg", 10)
-
-#res = duplicate_file("anotherkokoZoomed.mp4", 3)
-#print(res.get("duplicated_files"))
-
-#add_video_blur("anotherkokoZoomed.mp4")
+main()
