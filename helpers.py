@@ -124,6 +124,24 @@ def concat_videos_from_file(filename: str, extension = "mp4"):
 	except Exception as e:
 			logging.exception("Error: ", e)
 
+def loop_video(video: str, how_many: int, output_file: str):
+	try:
+		os.system(f'ffmpeg -stream_loop {how_many} -i {video} -r 25 -c copy {output_file}')
+		return output_file
+	except Exception as e:
+		logging.exception("Error:: ", e)
+
+def trim_video(video_file, start, stop, output_file):
+	try:
+		os.system(f'ffmpeg -ss {start} -to {stop} -i {video_file} -c copy {output_file}')
+		return output_file
+	except Exception as e:
+		logging.exception("Error:: ", e)
+
+#loop_video("Tatsumaki0.mp4", 5, "Tatsumaki0looped.mp4")
+#loop_video("Tatsumaki1.mp4", 5, "Tatsumaki1looped.mp4")
+#trim_video("Tatsumaki0looped.mp4", 0, 4, "Tatsumaki0trim.mp4")
+#trim_video("Tatsumaki1looped.mp4", 0, 4, "Tatsumaki1trim.mp4")
 
 def overlay_multiple_images(video_file, image_list, duration_dict, output_file):
     filter_complex = ""
@@ -147,15 +165,21 @@ def overlay_multiple_images(video_file, image_list, duration_dict, output_file):
         f'-filter_complex "{filter_complex}" -map "[v{overlay_counter-1}]" -map 0:a -preset ultrafast {output_file}'
     )
     try:
-        os.system(ffmpeg_command)
+        print(ffmpeg_command)
         return output_file
     except Exception as e:
         logging.exception("Error: ", e)
         
 
-
-
-# overlay_multiple_images(video_file, image_list, duration_dict, output_file)
+image_list = ["Tatsumaki0trim.mp4", "Tatsumaki1trim.mp4"]
+video_file = "finalagain.mp4"
+duration_dict = {
+	"Tatsumaki1trim.mp4": {"start": 0, "stop": 4},
+	"Tatsumaki0trim.mp4": {"start": 4, "stop": 8},
+	#"Tatsumaki2.mp4": {"start": 4, "stop": 6},
+}
+output_file = "trial.mp4"
+#overlay_multiple_images(video_file, image_list, duration_dict, output_file)
 
 
 

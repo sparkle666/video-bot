@@ -5,6 +5,8 @@ import requests
 import logging
 
 
+
+
 v_time = 0.5
 # Tenor API keys and detials
 
@@ -92,6 +94,7 @@ def prepare_video(videos):
   else:
     pass
 
+
 def convert_to_Mp4():
   """Converts a video, gif or list of video to .mp4"""
   
@@ -145,9 +148,7 @@ def center_text_in_video(char1, char2, stats, font_file):
         duration = value[1]
         # Center the text in the video file using FFmpeg with a yellow font color and black border color
         subprocess.run(['ffmpeg', '-i', 'overlay1New.mp4', '-vf', f"drawtext=text='{key}':fontsize=90:fontfile={font_file}:x=(w-text_w)/2:y=(h-text_h)/2:fontcolor=yellow:bordercolor=black:borderw=8", '-c:a', 'copy', f"{key}.mp4"])
-        # check if text in stat is akaza, add akaza to line so that compile all stats and winner will be easy
         print(f"Video done: {key}.mp4, {text}: duration: {duration}")
-        # make video to 1080x1920 and add New to the video name
         prepare_video(key)
         
         if text == "Akaza":
