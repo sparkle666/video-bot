@@ -10,7 +10,7 @@
 - Place the images/videos cropped and edited into center of the video. 
 - Add audio to video and sync. 12. Add subtitles and encode video. 
 - End
-
+also
 ## Character VS algorithm
 - Download anime character videos 3 each
 - Check if they are mp4, else convert to mp4
