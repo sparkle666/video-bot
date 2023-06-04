@@ -3,16 +3,20 @@ import subprocess
 import ffmpeg
 import requests
 import logging
+from dotenv import dotenv_values
+from videoAI import download_video_from_url, add_zoom_effect, get_tenor_video_urls
 
+config = dotenv_values(".env")
+
+TENOR_API = config["TENOR_API"]
+CKEY = config["CKEY"]
 
 v_time = 0.5
 # Tenor API keys and detials
 
-TENOR_API = "AIzaSyAkeksD2Jbb7nWTGrE7FxRogR13tdNJTDM"
-ckey = "Tenor-Videos"
 
-video_intro_duration = 2.3 
-video_outro = 1.5
+VIDEO_INTRO_DURATION = 2.3 
+VIDEO_OUTRO = 1.5
 video_outro_ads = 3.0 
 
 stats = {
@@ -27,87 +31,58 @@ stats = {
   "Skill" : ["Akaza", 0.5],
   "Winner": ["Akaza", 0.5]
 }
+
 font_file = '/storage/emulated/0/PyFiles/Helvetica-Bold.ttf'
 working_dir = '/storage/emulated/0/PyFiles/GPT'
 
-v_width = 1080
-v_height = 1633
+V_WIDTH = 1080
+V_HEIGHT = 1633
 
-def make_intro(video_title, video):
-  """ Make a video intro with time and duration"""
-  pass
-  
-def outro(winner):
-  """ Add outro to the video"""
-  pass
-
-def download_character_videos(anime_char, api_key, ckey, lmt =2):
-   """ Downloads character in list from tenor"""
-  #res["results"][0]["media_formats"]["mp4"]["url"]
-  urls = []
-  try:
-    print("inside try")
-    req = requests.get(
-    "https://tenor.googleapis.com/v2/search?q=%s&key=%s&client_key=%s&limit=%s" % (anime_char, api_key, ckey,  lmt))
-    print(req.status_code)
-    if req.status_code == 200:
-      res = req.json()
-      for index in list(range(len(res["results"]))):
-        url.append(res["results"][index]["media_formats"]["mp4"]["url"])
-        download_video_from_url(anime_char, url)
-    # load the GIFs using the urls for the smaller GIF sizes
-    else:
-      print(f"Error: {req.status_code}... closing")
-  except Exception as e:
-      logging.exception("Error making requests")
-
-download_character_videos("Saitama", TENOR_API, ckey)  
-
-def download_video_from_url(char_name, url_list):
-  """ Download video from url using ffmpeg"""
-  print(f"Dowloading videos for character: {char_name}")
-  
-  for url in url_list:
-    os.system(f"ffmpeg -i {url} {char_name}{url_list.index(url)}.mp4")
-  return True
-
-def prepare_video(videos):
-  print(f"value in videos: {videos}")
-  
-  print("Scalling videos to 1080x1920")
-  if type(videos) == list:
-    for video in videos:
-    # First Trimming to specific size 0.5 secs, thrn resize to 1080x1920 and padd bottom with black video, after that encode to same format
-      os.system(f"ffmpeg -i {video}.mp4 -ss 00:00:00.000 -t 00:00:00.500 -vf 'scale=w=1080:h=1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black' {video}New.mp4")
-      
-      print(f"Scaled: {video}New.mp4")
-      #os.remove(f"{video}.mp4")
-  
-  elif type(videos) == str:
-    os.system(f"ffmpeg -i {videos}.mp4 -ss 00:00:00.000 -t 00:00:00.500 -vf 'scale=w=1080:h=1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black' {videos}New.mp4")
-    
-    print(os.path.exists(f"{videos}New.mp4"))
  
-    print(f"Scaled: {videos}New.mp4")
-  else:
-    pass
 
-def convert_to_Mp4():
-  """Converts a video, gif or list of video to .mp4"""
+def format_video_to_1080(videos, start, stop, isList = False ):
+  """  First Trimming to specific start and stop duration, then resize to 1080x1920 and pad bottom with black video, 
+  after that encode to same format
+  """
   
-def create_bg_video(video_name = "bg_video", duration = 60, color = "black", dimension = "1080x1920"):
+  print_border("Scalling videos to 1080x1920")
+  
+  try:
+    splited_video = ""
+    
+    if isList:
+      for video in videos:
+        splited_video = video.split('.')[0]
+        os.system(f"ffmpeg -i {splited_video}1080.mp4 -ss 00:00:00.000 -t 00:00:00.500 -vf 'scale=w=1080:h=1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black' {video}New.mp4")
+      return(f"Scaled: {video}New.mp4")
+    
+    splited_video = videos.split('.')[0]
+    os.system(f"ffmpeg -i {splited_video}1080.mp4 -ss 00:00:00.000 -t 00:00:00.500 -vf 'scale=w=1080:h=1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black' {videos}New.mp4")
+    return(f"{splited_video}1080.mp4")
+  
+  except Exception as e:
+    logging.exception("Error in formating images")
+      
+  
+  
+def create_bg_video(video_name = "bg_video.mp4", duration = 60, color = "black", dimension = "1080x1920"):
   """Creates a blank video for overlaying other videos"""
   
-  os.system(f"ffmpeg -t {duration} -f lavfi -i color=c={color}:s={dimension} -c:v libx264 -tune stillimage -pix_fmt yuv420p {video_name}.mp4")
-  
-  return [f"{video_name}.mp4", duration, color, dimension]
-
+  try:
+    os.system(f"ffmpeg -t {duration} -f lavfi -i color=c={color}:s={dimension} -c:v libx264 -tune stillimage -pix_fmt yuv420p {video_name}")
+    return f"{video_name}"
+ 
+  except Exception as e:
+    logging.exception(e)
+    
+    
 def overlay_videos(video1, video2, bg_video = "bg_video.mp4"):
     """" overlaying 2 videos on letsgo.mp4, trimming it and scalling to 1080x1920"""
     
     # check if background video exists
     if os.path.exists(bg_video) == False:
       print("Please rename a video to 'bg_video.mp4' or create a background video this will be used for making the overlay. ")
+      return
     
     overlay1 = ffmpeg.input(video1).filter("scale", 1080, -1, height = 1633 / 2)
     overlay2 = ffmpeg.input(video2).filter("scale", 1080, -1, height = 1633 / 2 )
@@ -129,9 +104,13 @@ def overlay_videos(video1, video2, bg_video = "bg_video.mp4"):
 def add_text_to_video(video, text):
   """ Centers a text in the middle of a video """
   
-  subprocess.run(['ffmpeg', '-i', f'{video}.mp4', '-vf', f"drawtext=text='{text}':fontsize=90:fontfile={font_file}:x=(w-text_w)/2:y=(h-text_h)/2:fontcolor=yellow:bordercolor=black:borderw=8", '-c:a', 'copy', f"{text}.mp4"])
-  
-  return f"{text}.mp4"
+  try:
+    subprocess.run(['ffmpeg', '-i', f'{video}', '-vf', 
+                    f"drawtext=text='{text}':fontsize=90:fontfile={font_file}:x=(w-text_w)/2:y=(h-text_h)/2:fontcolor=yellow:bordercolor=black:borderw=8", '-c:a', 'copy', f"{video.split('.')[0]}.mp4"])
+    return f"{video.split('.')[0]}.mp4"
+  except Exception as e:
+    logging.exception(e)
+    
     
 def center_text_in_video(char1, char2, stats, font_file):
     print("Inside of center_text_in_video function")

@@ -48,6 +48,8 @@ def main():
     
     print_logo()
     time.sleep(2)
+    # Calculating time of programming running
+    # time_start = time.now()
     
     script = load_script()
     title = ""
@@ -76,8 +78,8 @@ def main():
         print_border(f"Converted to srt : {audio_subtitle}")
         print_rule("Getting audio data")
         audio_data = get_video_data("tats.mp3", isVideo=False)
-        print(audio_data)
         audio_duration = audio_data.get("duration")
+        
         if audio_duration > 10:
           print_border("Audio is > 10 secs")
           num_videos = math.ceil(audio_duration/10)
@@ -122,14 +124,14 @@ def main():
               stop += time_interval
               start = stop - time_interval
               duration_dict[image] = {"start": start, 'stop': stop}
-              # overlay_video_in_center(full_video_with_audio, all_images_resized[index], start, stop, f"finalvideo{index}.mp4")
-              # full_video_with_audio = f"finalvideo{index}.mp4"
-          # print("Duration: ", duration_dict)
-          # print("all image file rezized: ", all_images_resized)
           
           overlayed_video = overlay_multiple_images(full_video_with_audio, all_images_resized, duration_dict, f"{title}.mp4")
           print_rule("Adding Subtitle to Video")
           subtitled = add_subtitle_to_video(overlayed_video, audio_subtitle)
+          
+          # total_time = time_start + time.now()
+
+          # print_border(f'Total time taken: {total_time}')
           print_rule("Omo... We throughhhhhh...")	
         
 
@@ -433,7 +435,7 @@ def add_subtitle_to_video(video : str, subtitle: str) -> str:
     '-hide_banner',
     '-i', 'One_Punch.mp4',
     '-vf', "subtitles=tats.srt:force_style='PrimaryColour=&H0000ffff'",
-    '-preset ultrafast',
+    # '-preset ultrafast',
     'One_PunchWithSubtitle.mp4'
     ]
     subprocess.run(command)
@@ -445,4 +447,4 @@ def add_subtitle_to_video(video : str, subtitle: str) -> str:
 
 # add_subtitle_to_video("One_Punch.mp4", "tats.srt")  
 # Project: Nairaland audio for Dairy section 
-main()
+# main()
