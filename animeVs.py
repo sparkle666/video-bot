@@ -5,17 +5,15 @@ import requests
 import logging
 from dotenv import dotenv_values
 from videoAI import download_video_from_url, add_zoom_effect, get_tenor_video_urls
+from console import print_border
+from helpers import get_os
 
 config = dotenv_values(".env")
 
 TENOR_API = config["TENOR_API"]
 CKEY = config["CKEY"]
 
-
-
 v_time = 0.5
-# Tenor API keys and detials
-
 
 VIDEO_INTRO_DURATION = 2.3 
 VIDEO_OUTRO = 1.5
@@ -34,19 +32,23 @@ stats = {
   "Winner": ["Akaza", 0.5]
 }
 
-font_file = '/storage/emulated/0/PyFiles/Helvetica-Bold.ttf'
-working_dir = '/storage/emulated/0/PyFiles/GPT'
+working_dir = os.getcwd()
+# font_dir = f"{working_dir}/fonts"
+# if get_os() == "Windows": font_dir = f"{working_dir}\\fonts\\Helvetica.ttf"
+
+# Add the double slash \\ to escape the colon else wont work on ffmpeg
+font_dir = "C\\:/Users/Sparkles/Desktop/Django Tutorials/python_apps/video-bot/fonts/Helvetica.ttf"
+
 
 V_WIDTH = 1080
 V_HEIGHT = 1633
 
  
 
-def format_video_to_1080(videos, start, stop, isList = False ):
+def pad_video(videos, width = 1080, height = 1920, isList = False ):
   """  First Trimming to specific start and stop duration, then resize to 1080x1920 and pad bottom with black video, 
   after that encode to same format
   """
-  
   print_border("Scalling videos to 1080x1920")
   
   try:
@@ -55,35 +57,49 @@ def format_video_to_1080(videos, start, stop, isList = False ):
     if isList:
       for video in videos:
         splited_video = video.split('.')[0]
-        os.system(f"ffmpeg -i {splited_video}1080.mp4 -ss 00:00:00.000 -t 00:00:00.500 -vf 'scale=w=1080:h=1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black' {video}New.mp4")
-      return(f"Scaled: {video}New.mp4")
+        os.system(f'ffmpeg -hide_banner -i {video}' +
+                  f' -vf "scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2"' +
+                  f' {splited_video}_padded.mp4')     
+        return(f"Scaled: {video}_padded.mp4")
     
     splited_video = videos.split('.')[0]
-    os.system(f"ffmpeg -i {splited_video}1080.mp4 -ss 00:00:00.000 -t 00:00:00.500 -vf 'scale=w=1080:h=1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black' {videos}New.mp4")
-    return(f"{splited_video}1080.mp4")
+    os.system(f'ffmpeg -hide_banner -i {videos}' +
+              f' -vf "scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2"' +
+              f' {splited_video}_padded.mp4')
+    return(f"{splited_video}_padded.mp4")
   
   except Exception as e:
-    logging.exception("Error in formating images")
+    logging.exception("Error in padding videos")
+ 
+# pad_video("Saitama0.mp4")
       
-  
-  
-def create_bg_video(video_name = "bg_video.mp4", duration = 60, color = "black", dimension = "1080x1920"):
+def split_file_name(filename):
+  """ A function that splits a string and returns the first word """
+  return f'{filename.split(".")[0]}'
+
+
+def create_bg_video(video_name = "bg_video.mp4", duration = 60, color = "black", dimension = f"{V_WIDTH}x{V_HEIGHT}"):
   """Creates a blank video for overlaying other videos"""
   
   try:
-    os.system(f"ffmpeg -t {duration} -f lavfi -i color=c={color}:s={dimension} -c:v libx264 -tune stillimage -pix_fmt yuv420p {video_name}")
+    os.system(f"ffmpeg -hide_banner -t {duration} -f lavfi -i color=c={color}:s={dimension} " + 
+              f"-c:v libx264 -tune stillimage -pix_fmt yuv420p -preset ultrafast {video_name}")
     return f"{video_name}"
  
   except Exception as e:
     logging.exception(e)
     
-    
+# create_bg_video(duration = 10)    
+
 def overlay_videos(video1, video2, bg_video = "bg_video.mp4"):
     """" overlaying 2 videos on letsgo.mp4, trimming it and scalling to 1080x1920"""
     
     # check if background video exists
+    file1 = split_file_name(video1)
+    file2 = split_file_name(video2)
     if os.path.exists(bg_video) == False:
-      print("Please rename a video to 'bg_video.mp4' or create a background video this will be used for making the overlay. ")
+      print("Please rename a video to 'bg_video.mp4' or create a background video", 
+            "this will be used for making the overlay. ")
       return
     
     overlay1 = ffmpeg.input(video1).filter("scale", 1080, -1, height = 1633 / 2)
@@ -91,28 +107,58 @@ def overlay_videos(video1, video2, bg_video = "bg_video.mp4"):
     (
     ffmpeg.input(bg_video)
     .overlay(overlay1)
-    .overlay(overlay2, x = 0, y = v_height / 2)
-    .output(f"{video1}_{video2}_Overlayed.mp4")
+    .overlay(overlay2, x = 0, y = V_HEIGHT / 2)
+    .output(f"{file1}_{file2}_Overlayed.mp4")
     .run()
     )  
-    return f"{video1}_{video2}_Overlayed.mp4"
-    
-    # Trim video to 0.5 seconds and upscale to avoid problems when concating videos.
-    #prepare_video(["overlay1", "okay", "akaza1"])
-    
-    #print("cleaning up overlay...")
-    # removing the old long overlay
-    #os.remove("overlay1.mp4")
-def add_text_to_video(video, text):
-  """ Centers a text in the middle of a video """
+    return f"{file1}_{file2}_Overlayed.mp4"
+ 
+# overlay_videos("Saitama0.mp4", "Saitama1.mp4")   
+ 
+# def add_text_to_video(video, text):
+#   """ Centers a text in the middle of a video """
   
+#   try:
+#     command = f"""ffmpeg -i {video} \
+#     -vf "drawtext=text='Hax':x=(w-text_w)/2:y=(h-text_h)/2:fontsize=90:bordercolor=black:borderw=8:fontcolor=yellow:fontfile={font_dir}" \
+#     -c:a copy output.mp4 {video.split('.')[0]}_{text}.mp4"""
+    
+#     os.system(command)
+#     return f"{video.split('.')[0]}.mp4"
+  
+#   except Exception as e:
+#     logging.exception(e)
+ 
+
+def add_text_to_video(videos, text, isList = False ):
+  """  Centers a text in the middle of a video """
+    
   try:
-    subprocess.run(['ffmpeg', '-i', f'{video}', '-vf', 
-                    f"drawtext=text='{text}':fontsize=90:fontfile={font_file}:x=(w-text_w)/2:y=(h-text_h)/2:fontcolor=yellow:bordercolor=black:borderw=8", '-c:a', 'copy', f"{video.split('.')[0]}.mp4"])
-    return f"{video.split('.')[0]}.mp4"
+    splited_video = ""
+    
+    if isList:
+      for video in videos:
+        splited_video = split_file_name(video)
+        command = f"""ffmpeg -hide_banner -i {video} \
+        -vf "drawtext=text={text}:x=(w-text_w)/2:y=(h-text_h)/2:fontfile={font_dir}:fontsize=90:bordercolor=black:borderw=8:fontcolor=yellow:fontfile={font_dir}" \
+        -c:a copy -preset ultrafast {splited_video}_{text}.mp4"""
+        os.system(command)
+        
+        return(f"{splited_video}_{text}.mp4")
+    
+    splited_video = split_file_name(videos)
+    command = f"""ffmpeg -hide_banner -i {videos} \
+    -vf "drawtext=text={text}:x=(w-text_w)/2:y=(h-text_h)/2:fontfile={font_dir}:fontsize=90:bordercolor=black:borderw=8:fontcolor=yellow:fontfile={font_dir}" \
+    -c:a copy -preset ultrafast {splited_video}_{text}.mp4"""
+    os.system(command)
+    
+    return(f"{splited_video}_{text}.mp4")
+  
   except Exception as e:
     logging.exception(e)
-    
+
+add_text_to_video("Saitama0_Saitama1_Overlayed.mp4", "Strenght")   
+
     
 def center_text_in_video(char1, char2, stats, font_file):
     print("Inside of center_text_in_video function")
@@ -137,9 +183,9 @@ def center_text_in_video(char1, char2, stats, font_file):
           clip.write("file 'okayNew.mp4' \n")
     clip.close() 
     
-    os.system(f"ffmpeg -f concat -i clip.txt -c copy -safe 0 AkazaVsSukunaAgain.mp4")
+    os.system(f"ffmpeg -hide_banner -f concat -i clip.txt -c copy -safe 0 AkazaVsSukunaAgain.mp4")
     
-    os.system("ffmpeg -i AkazaVsSukunaAgain.mp4 -c:v libx264 -crf 28 AkazaVsSukunaEncoded.mp4")
+    os.system("ffmpeg -hide_banner -i AkazaVsSukunaAgain.mp4 -c:v libx264 -crf 28 AkazaVsSukunaEncoded.mp4")
     print("cleaning up...")
     
     for key, values in stats.items():
@@ -147,7 +193,7 @@ def center_text_in_video(char1, char2, stats, font_file):
       os.remove(f"{key}New.mp4")
       
     
-def start():
+def convert_to_mp4(video_file):
   pass
         
 #run_video()

@@ -2,7 +2,12 @@ import subprocess
 import os
 from PIL import ImageOps, Image
 import logging
+import platform
 
+
+def get_os():
+    """ Gets the current running OS for the program """
+    return platform.system()
 
 def get_image_data(image) -> tuple:
   """ Gets all necesary data from image """

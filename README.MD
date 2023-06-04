@@ -17,7 +17,7 @@ also
 - Generate the background video.
 - Overlay both character videos on the background video.
 - Add text to the full overlayed video in center.
--  Create the intro of overlayed video with 3 secs duration.
+- Create the intro of overlayed video with 3 secs duration.
 - Loop through dictionary and add write file for each instance a character wins.
 - Concate 3 videos of the winning character
 - Add the intro, main video body and the outro together.
