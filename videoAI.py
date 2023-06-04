@@ -395,7 +395,7 @@ def generate_audio(text, filename):
   print(text)
   try:
       print("inside try block")
-      req = session.post(f"{api_endpoint}/v1/text-to-speech/{voices['Antoni']}/stream", headers = headers, json = payload)
+      req = session.post(f"{api_endpoint}/v1/text-to-speech/{voices['Arnold']}/stream", headers = headers, json = payload)
       print("making requests")
       if req.status_code == 200:
         print("Saving audio file")
