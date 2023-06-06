@@ -16,8 +16,7 @@ CKEY = config["CKEY"]
 v_time = 0.5
 
 VIDEO_INTRO_DURATION = 2.3 
-VIDEO_OUTRO = 1.5
-video_outro_ads = 3.0 
+VIDEO_OUTRO_DURATION = 4.7
 
 stats = {
   "Strength" : ["Akaza", 0.5],
@@ -37,7 +36,7 @@ working_dir = os.getcwd()
 # if get_os() == "Windows": font_dir = f"{working_dir}\\fonts\\Helvetica.ttf"
 
 # Add the double slash \\ to escape the colon else wont work on ffmpeg
-font_dir = "C\\:/Users/Sparkles/Desktop/Django Tutorials/python_apps/video-bot/fonts/Helvetica.ttf"
+font_dir = 'C\\:/Users/Sparkles/Desktop/Django Tutorials/python_apps/video-bot/fonts/Helvetica.ttf'
 
 
 V_WIDTH = 1080
@@ -78,7 +77,7 @@ def split_file_name(filename):
   return f'{filename.split(".")[0]}'
 
 
-def create_bg_video(video_name = "bg_video.mp4", duration = 60, color = "black", dimension = f"{V_WIDTH}x{V_HEIGHT}"):
+def create_bg_video(video_name = "bg_video.mp4", duration = 5, color = "black", dimension = f"{V_WIDTH}x{V_HEIGHT}"):
   """Creates a blank video for overlaying other videos"""
   
   try:
@@ -113,25 +112,9 @@ def overlay_videos(video1, video2, bg_video = "bg_video.mp4"):
     )  
     return f"{file1}_{file2}_Overlayed.mp4"
  
-# overlay_videos("Saitama0.mp4", "Saitama1.mp4")   
- 
-# def add_text_to_video(video, text):
-#   """ Centers a text in the middle of a video """
-  
-#   try:
-#     command = f"""ffmpeg -i {video} \
-#     -vf "drawtext=text='Hax':x=(w-text_w)/2:y=(h-text_h)/2:fontsize=90:bordercolor=black:borderw=8:fontcolor=yellow:fontfile={font_dir}" \
-#     -c:a copy output.mp4 {video.split('.')[0]}_{text}.mp4"""
-    
-#     os.system(command)
-#     return f"{video.split('.')[0]}.mp4"
-  
-#   except Exception as e:
-#     logging.exception(e)
- 
 
 def add_text_to_video(videos, text, isList = False ):
-  """  Centers a text in the middle of a video """
+  """  Centers a text in the middle of a video. Handles just one word at a time."""
     
   try:
     splited_video = ""
@@ -148,8 +131,8 @@ def add_text_to_video(videos, text, isList = False ):
     
     splited_video = split_file_name(videos)
     command = f"""ffmpeg -hide_banner -i {videos} \
-    -vf "drawtext=text={text}:x=(w-text_w)/2:y=(h-text_h)/2:fontfile={font_dir}:fontsize=90:bordercolor=black:borderw=8:fontcolor=yellow:fontfile={font_dir}" \
-    -c:a copy -preset ultrafast {splited_video}_{text}.mp4"""
+        -vf "drawtext=text={text}:x=(w-text_w)/2:y=(h-text_h)/2:fontfile={font_dir}:fontsize=90:bordercolor=black:borderw=8:fontcolor=yellow:fontfile={font_dir}" \
+        -c:a copy -preset ultrafast {splited_video}_{text}.mp4"""
     os.system(command)
     
     return(f"{splited_video}_{text}.mp4")
@@ -157,9 +140,17 @@ def add_text_to_video(videos, text, isList = False ):
   except Exception as e:
     logging.exception(e)
 
-add_text_to_video("Saitama0_Saitama1_Overlayed.mp4", "Strenght")   
+# add_text_to_video("Saitama0_Saitama1_Overlayed.mp4", "Rengoku")   
 
-    
+def create_intro(title, duration):
+  """ Creates an intro video of title overlayed in the center of a video """
+  
+  command = f""" ffmpeg -i Saitama0_Saitama1_Overlayed.mp4 -vf "drawtext=text='Aizen':x=(w-text_w)/2:y=((h-text_h)/2)-90:fontfile={font_dir}:fontsize=90:fontcolor=yellow:borderw=8:bordercolor=black,drawtext=text='Vs':x=(w-text_w)/2:y=(h-text_h)/2:fontfile={font_dir}:fontsize=90:fontcolor=yellow:borderw=8:bordercolor=black,drawtext=text='Rengoku':x=(w-text_w)/2:y=((h-text_h)/2)+90:fontfile={font_dir}:fontsize=90:fontcolor=yellow:borderw=8:bordercolor=black" -c:a copy -preset ultrafast out.mp4"""
+  os.system(command)
+
+
+create_intro("title", "duration")
+
 def center_text_in_video(char1, char2, stats, font_file):
     print("Inside of center_text_in_video function")
     run_video()
@@ -200,9 +191,3 @@ def convert_to_mp4(video_file):
 #center_text_in_video(stats, font_file)
 #prepare_video("okay")
 
-
-
-# ffmpeg -i input_video.mp4 -ss 00:00:00.000 -t 00:00:00.500 -filter_complex "[0:v]scale=w=1080:h=1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black" output_video.mp4
-# Probing h and w of video
-# ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 akaza1.mp4 
-#subprocess.run(['ffmpeg', '-y', '-i', 'overlayNew.mp4', '-vf', f"drawtext=text='{key}':fontsize=90:fontfile={font_file}:x=(w-text_w)/2:y=(h-text_h)/2:fontcolor=yellow:bordercolor=black:borderw=8", '-t', str(duration),'-c:a', 'copy', '-movflags', '+faststart', f"{key}.mp4"])
