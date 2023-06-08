@@ -6,7 +6,7 @@ import logging
 from dotenv import dotenv_values
 from videoAI import download_video_from_url, add_zoom_effect, get_tenor_video_urls
 from console import print_border
-from helpers import get_os
+from helpers import get_os, get_video_data
 
 config = dotenv_values(".env")
 
@@ -142,52 +142,22 @@ def add_text_to_video(videos, text, isList = False ):
 
 # add_text_to_video("Saitama0_Saitama1_Overlayed.mp4", "Rengoku")   
 
-def create_intro(title, duration):
+def add_3text_to_video(video_name: str, char_list: list, font_size: int, output_file: str):
   """ Creates an intro video of title overlayed in the center of a video """
   
-  command = f""" ffmpeg -i Saitama0_Saitama1_Overlayed.mp4 -vf "drawtext=text='Aizen':x=(w-text_w)/2:y=((h-text_h)/2)-90:fontfile={font_dir}:fontsize=90:fontcolor=yellow:borderw=8:bordercolor=black,drawtext=text='Vs':x=(w-text_w)/2:y=(h-text_h)/2:fontfile={font_dir}:fontsize=90:fontcolor=yellow:borderw=8:bordercolor=black,drawtext=text='Rengoku':x=(w-text_w)/2:y=((h-text_h)/2)+90:fontfile={font_dir}:fontsize=90:fontcolor=yellow:borderw=8:bordercolor=black" -c:a copy -preset ultrafast out.mp4"""
-  os.system(command)
+  char1 = char_list[0]
+  char2 = char_list[1]
+  
+  try:
+    command = f""" ffmpeg -hide_banner -i {video_name} -vf "drawtext=text={char1}:x=(w-text_w)/2:y=((h-text_h)/2)-{font_size}:fontfile={font_dir}:fontsize={font_size}:fontcolor=yellow:borderw=8:bordercolor=black,drawtext=text='Vs':x=(w-text_w)/2:y=(h-text_h)/2:fontfile={font_dir}:fontsize={font_size}:fontcolor=yellow:borderw=8:bordercolor=black,drawtext=text={char2}:x=(w-text_w)/2:y=((h-text_h)/2)+{font_size}:fontfile={font_dir}:fontsize={font_size}:fontcolor=yellow:borderw=8:bordercolor=black" -c:a copy -preset ultrafast {output_file}"""
+    
+    os.system(command)
+    return output_file
+  
+  except Exception as e:
+    logging.exception(e)
+
+# add_3text_to_video("Saitama0_Saitama1_Overlayed.mp4", ["Akaza", "Rengoku"], 60, "out1.mp4")
 
 
-create_intro("title", "duration")
-
-def center_text_in_video(char1, char2, stats, font_file):
-    print("Inside of center_text_in_video function")
-    run_video()
-    # Loop through each key-value pair in the dictionary
-    clip = open("clip.txt", "w+")   
-    
-    for key, value in stats.items():
-        # Get the first index of the value array
-        text = value[0]
-        duration = value[1]
-        # Center the text in the video file using FFmpeg with a yellow font color and black border color
-        subprocess.run(['ffmpeg', '-i', 'overlay1New.mp4', '-vf', f"drawtext=text='{key}':fontsize=90:fontfile={font_file}:x=(w-text_w)/2:y=(h-text_h)/2:fontcolor=yellow:bordercolor=black:borderw=8", '-c:a', 'copy', f"{key}.mp4"])
-        print(f"Video done: {key}.mp4, {text}: duration: {duration}")
-        prepare_video(key)
-        
-        if text == "Akaza":
-          clip.write(f"file '{key}New.mp4' \n")
-          clip.write("file 'akaza1New.mp4' \n")
-        else:
-          clip.write(f"file '{key}New.mp4' \n")
-          clip.write("file 'okayNew.mp4' \n")
-    clip.close() 
-    
-    os.system(f"ffmpeg -hide_banner -f concat -i clip.txt -c copy -safe 0 AkazaVsSukunaAgain.mp4")
-    
-    os.system("ffmpeg -hide_banner -i AkazaVsSukunaAgain.mp4 -c:v libx264 -crf 28 AkazaVsSukunaEncoded.mp4")
-    print("cleaning up...")
-    
-    for key, values in stats.items():
-      os.remove(f"{key}.mp4")
-      os.remove(f"{key}New.mp4")
-      
-    
-def convert_to_mp4(video_file):
-  pass
-        
-#run_video()
-#center_text_in_video(stats, font_file)
-#prepare_video("okay")
 

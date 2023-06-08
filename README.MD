@@ -12,6 +12,8 @@
 - End
 also
 ## Character VS algorithm
+- Auto choose 2 characters from a json list for comparison -> characterList.json
+- If character is same, get another character at random.
 - Download anime character videos 3 each
 - Check if they are mp4, else convert to mp4
 - Generate the background video.
@@ -22,6 +24,7 @@ also
 - Loop through dictionary and add write file for each instance a character wins.
 - Concate 3 videos of the winning character
 - Add the intro, main video body and the outro together.
+- Add the already done characters to a json file named "generated.json"
 - End
 
  ### Things to DEBUG:

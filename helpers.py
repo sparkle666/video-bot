@@ -43,7 +43,7 @@ def get_video_data(video, isVideo=True) -> dict:
         if isVideo:
             dimensions_cmd = ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0:s=x", f"{video}"]
             dimensions_output = subprocess.check_output(dimensions_cmd).decode("utf-8").strip().split("x")
-            print(dimensions_output)
+            # print(dimensions_output)
             width = int(dimensions_output[0])
             height = int(dimensions_output[1])
             return {"duration": float(duration), "dimension": [width, height]}
